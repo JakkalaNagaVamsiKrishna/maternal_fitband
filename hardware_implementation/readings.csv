@@ -1,0 +1,6 @@
+timestamp,device_ts_s,hr_bpm,spo2_pct,glucose_mg_dl,activity,sleep_stage,supine_alert,vm_g,ax_g,ay_g,az_g
+12:39:59,1,75,98,112.5,sedentary,Light Sleep,False,0.985,0.05,0.02,0.98
+12:40:00,2,76,98,112.4,sedentary,Light Sleep,False,0.985,0.05,0.02,0.98
+12:40:00,3,77,98,112.2,sedentary,Light Sleep,False,0.985,0.05,0.02,0.98
+12:40:01,4,78,98,112.0,sedentary,Light Sleep,False,0.985,0.05,0.02,0.98
+12:40:01,5,79,98,111.7,sedentary,Light Sleep,False,0.985,0.05,0.02,0.98
