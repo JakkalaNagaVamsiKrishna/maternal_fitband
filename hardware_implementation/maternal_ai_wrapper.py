@@ -690,6 +690,7 @@ class MaternalAIWrapper:
 SCENARIOS = {
     1: (
         MaternalProfile(
+            patient_id="MOM-101",
             patient_name="Ananya Sharma",
             gestational_week=30,
             preexisting_conditions=["Gestational Diabetes Suspected"],
@@ -708,6 +709,7 @@ SCENARIOS = {
     ),
     2: (
         MaternalProfile(
+            patient_id="MOM-204",
             patient_name="Pooja Patel",
             gestational_week=32,
             preexisting_conditions=["None"],
@@ -726,6 +728,7 @@ SCENARIOS = {
     ),
     3: (
         MaternalProfile(
+            patient_id="MOM-309",
             patient_name="Kavita Reddy",
             gestational_week=24,
             preexisting_conditions=["Mild Anemia"],
@@ -745,6 +748,7 @@ SCENARIOS = {
     ),
     4: (
         MaternalProfile(
+            patient_id="MOM-412",
             patient_name="Neha Verma",
             gestational_week=18,
             preexisting_conditions=["None"],
@@ -782,6 +786,10 @@ def main():
                         help="Print raw structured JSON output")
     parser.add_argument("--all-scenarios", action="store_true",
                         help="Run and verify all 4 clinical scenarios sequentially")
+    parser.add_argument("--patient-id", type=str, default=None,
+                        help="Custom Patient ID (e.g. MOM-101)")
+    parser.add_argument("--patient-name", type=str, default=None,
+                        help="Custom Patient Name (e.g. Ananya S.)")
 
     args = parser.parse_args()
     wrapper = MaternalAIWrapper(api_key=args.api_key)
@@ -798,7 +806,11 @@ def main():
 
     if args.csv:
         print(f"📊 Reading recorded fitband telemetry from: {args.csv}")
-        results = wrapper.process_csv_log(args.csv)
+        custom_prof = MaternalProfile(
+            patient_id=args.patient_id or "MOM-042",
+            patient_name=args.patient_name or "Priya S."
+        ) if (args.patient_id or args.patient_name) else None
+        results = wrapper.process_csv_log(args.csv, profile=custom_prof)
         if not results:
             print("⚠️  No valid readings found in CSV.")
             return
@@ -813,6 +825,10 @@ def main():
 
     # Default Scenario Execution
     prof, vit, title = SCENARIOS[args.scenario]
+    if args.patient_id:
+        prof.patient_id = args.patient_id
+    if args.patient_name:
+        prof.patient_name = args.patient_name
     print(f"\n🔬 EXECUTING {title}...")
     res = wrapper.process(prof, vit)
 
