@@ -26,6 +26,12 @@ try:
 except ImportError:
     HAS_SERIAL = False
 
+try:
+    from maternal_ai_wrapper import MaternalAIWrapper, MaternalProfile, MaternalVitals
+    HAS_AI_WRAPPER = True
+except ImportError:
+    HAS_AI_WRAPPER = False
+
 def find_esp32_port():
     if not HAS_SERIAL:
         return None
@@ -81,7 +87,12 @@ def main():
     parser.add_argument('--baud', default=115200, type=int, help='Baud rate')
     parser.add_argument('--csv',  default='readings.csv', help='CSV output file')
     parser.add_argument('--simulate', action='store_true', help='Run in live simulation mode without hardware')
+    parser.add_argument('--ai', action='store_true', help='Enable Clinical AI Wrapper recommendations on session exit')
+    parser.add_argument('--export-report', default='session_clinical_report.md', help='Output Markdown clinical report path')
     args = parser.parse_args()
+
+    ai_wrapper = MaternalAIWrapper() if (args.ai and HAS_AI_WRAPPER) else None
+    latest_data = {}
 
     print("=" * 75)
     print("  MATERNAL FITBAND: LIVE SERIAL MONITOR & CLINICAL TELEMETRY")
@@ -125,6 +136,27 @@ def main():
         ])
         csv_file.flush()
 
+    def trigger_ai_summary(last_reading):
+        if not (ai_wrapper and last_reading):
+            return
+        print("\n" + "=" * 75)
+        print("  GENERATING POST-SESSION CLINICAL AI EVALUATION...")
+        print("=" * 75)
+        vitals = MaternalVitals(
+            glucose_mg_dl=float(last_reading.get("glucose", 100.0)),
+            heart_rate_bpm=int(last_reading.get("hr", 75)),
+            spo2_pct=int(last_reading.get("spo2", 98)),
+            activity_state=last_reading.get("activity", "sedentary"),
+            sleep_stage=last_reading.get("sleep", "Awake"),
+            supine_alert=bool(last_reading.get("supine", False)),
+            vector_magnitude_g=float(last_reading.get("vm", 1.0))
+        )
+        profile = MaternalProfile()
+        res = ai_wrapper.process(profile, vitals)
+        ai_wrapper.render_terminal_dashboard(res)
+        if args.export_report:
+            ai_wrapper.export_markdown_report(res, args.export_report)
+
     if args.simulate:
         try:
             t = 0
@@ -143,10 +175,12 @@ def main():
                     "activity": act, "glucose": round(gluc, 1),
                     "sleep": sleep, "supine": supine
                 }
+                latest_data = sim_data
                 process_payload(sim_data, writer, csv_file)
                 time.sleep(0.5)
         except KeyboardInterrupt:
             print("\n[+] Simulation stopped by user.")
+            trigger_ai_summary(latest_data)
         finally:
             csv_file.close()
         sys.exit(0)
@@ -178,10 +212,12 @@ def main():
             except json.JSONDecodeError:
                 continue
 
+            latest_data = data
             process_payload(data, writer, csv_file)
 
     except KeyboardInterrupt:
         print("\n[+] Monitoring stopped by user. CSV saved.")
+        trigger_ai_summary(latest_data)
     finally:
         ser.close()
         csv_file.close()

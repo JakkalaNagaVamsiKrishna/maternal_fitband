@@ -144,3 +144,16 @@ You can run the full suite of machine learning simulations anytime without hardw
     python3 verify_predictions.py
     ```
     Validates non-invasive glucose against true clinical blood lab values across unseen test patients.
+
+*   **Clinical AI Companion & Ob/Gyn Consultation Report:**
+    ```bash
+    # Run the verification suite across all 4 clinical scenarios:
+    python3 maternal_ai_wrapper.py --all-scenarios
+
+    # Analyze a recorded session log and export doctor's SBAR report:
+    python3 maternal_ai_wrapper.py --csv readings.csv --export consultation_report.md
+
+    # Run live serial dashboard with real-time AI summary:
+    python3 live_dashboard.py --simulate --ai
+    ```
+    Translates biometrics into 4 pillars: personalized diet, sleep coach, safe exertion, and SBAR Ob/Gyn reports.
