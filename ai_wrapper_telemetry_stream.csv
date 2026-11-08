@@ -1,0 +1,121 @@
+timestamp,device_ts_s,hr_bpm,spo2_pct,glucose_mg_dl,activity,sleep_stage,supine_alert,vm_g,ax_g,ay_g,az_g
+12:39:04,1,74,98,102.2,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:05,2,75,98,102.5,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:06,3,76,98,102.7,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:07,4,76,98,102.9,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:08,5,76,98,103.1,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:09,6,76,98,103.3,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:10,7,76,98,103.4,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:11,8,76,98,103.5,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:12,9,76,98,103.5,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:13,10,75,98,103.5,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:14,11,75,98,103.4,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:15,12,74,98,103.4,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:16,13,73,98,103.2,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:17,14,72,98,103.1,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:18,15,72,97,102.9,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:19,16,71,98,102.7,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:20,17,71,98,102.5,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:21,18,71,98,102.2,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:22,19,71,98,102.0,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:23,20,71,98,101.7,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:24,21,71,98,101.5,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:25,22,71,98,101.2,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:26,23,72,98,101.0,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:27,24,73,98,100.9,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:28,25,73,98,100.7,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:29,26,74,98,100.6,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:30,27,75,98,100.5,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:31,28,75,98,100.5,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:32,29,76,98,100.5,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:33,30,76,97,100.6,sedentary,Awake,False,0.99,0.05,0.02,0.99
+12:39:34,31,84,98,111.1,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:35,32,83,98,112.2,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:36,33,83,98,113.3,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:37,34,83,98,114.4,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:38,35,84,98,115.5,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:39,36,85,98,116.6,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:40,37,86,98,117.7,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:41,38,88,98,118.8,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:42,39,90,98,119.9,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:43,40,91,98,121.0,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:44,41,92,98,122.1,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:45,42,92,98,123.2,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:46,43,92,98,124.3,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:47,44,92,98,125.4,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:48,45,91,98,126.5,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:49,46,89,98,127.6,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:50,47,88,98,128.7,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:51,48,86,98,129.8,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:52,49,85,98,130.9,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:53,50,83,98,132.0,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:54,51,83,98,133.1,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:55,52,83,98,134.2,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:56,53,83,98,135.3,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:57,54,84,98,136.4,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:58,55,85,98,137.5,walking,Awake,False,1.18,0.22,0.35,1.12
+12:39:59,56,87,98,138.6,walking,Awake,False,1.18,0.22,0.35,1.12
+12:40:00,57,88,98,139.7,walking,Awake,False,1.18,0.22,0.35,1.12
+12:40:01,58,90,98,140.8,walking,Awake,False,1.18,0.22,0.35,1.12
+12:40:02,59,91,98,141.9,walking,Awake,False,1.18,0.22,0.35,1.12
+12:40:03,60,92,98,143.0,walking,Awake,False,1.18,0.22,0.35,1.12
+12:40:04,61,115,96,135.0,OVEREXERTION,Awake,False,2.36,1.2,1.8,1.5
+12:40:05,62,116,96,135.0,OVEREXERTION,Awake,False,2.43,1.2,1.8,1.5
+12:40:06,63,117,96,135.0,OVEREXERTION,Awake,False,2.7,1.2,1.8,1.5
+12:40:07,64,118,96,135.0,OVEREXERTION,Awake,False,2.93,1.2,1.8,1.5
+12:40:08,65,119,96,135.0,OVEREXERTION,Awake,False,2.9,1.2,1.8,1.5
+12:40:09,66,119,96,135.0,OVEREXERTION,Awake,False,2.64,1.2,1.8,1.5
+12:40:10,67,120,96,135.0,OVEREXERTION,Awake,False,2.39,1.2,1.8,1.5
+12:40:11,68,121,96,135.0,OVEREXERTION,Awake,False,2.38,1.2,1.8,1.5
+12:40:12,69,122,96,135.0,OVEREXERTION,Awake,False,2.62,1.2,1.8,1.5
+12:40:13,70,123,96,135.0,OVEREXERTION,Awake,False,2.88,1.2,1.8,1.5
+12:40:14,71,123,96,135.0,OVEREXERTION,Awake,False,2.94,1.2,1.8,1.5
+12:40:15,72,124,96,135.0,OVEREXERTION,Awake,False,2.73,1.2,1.8,1.5
+12:40:16,73,125,96,135.0,OVEREXERTION,Awake,False,2.45,1.2,1.8,1.5
+12:40:17,74,126,96,135.0,OVEREXERTION,Awake,False,2.35,1.2,1.8,1.5
+12:40:18,75,127,96,135.0,OVEREXERTION,Awake,False,2.53,1.2,1.8,1.5
+12:40:19,76,127,96,135.0,OVEREXERTION,Awake,False,2.82,1.2,1.8,1.5
+12:40:20,77,128,96,135.0,OVEREXERTION,Awake,False,2.95,1.2,1.8,1.5
+12:40:21,78,129,96,135.0,OVEREXERTION,Awake,False,2.8,1.2,1.8,1.5
+12:40:22,79,130,96,135.0,OVEREXERTION,Awake,False,2.52,1.2,1.8,1.5
+12:40:23,80,131,96,135.0,OVEREXERTION,Awake,False,2.35,1.2,1.8,1.5
+12:40:24,81,64,97,92.0,sedentary,Restless,False,0.99,-0.75,0.1,0.65
+12:40:25,82,64,97,92.0,sedentary,Restless,False,0.99,-0.75,0.1,0.65
+12:40:26,83,64,97,92.0,sedentary,Restless,False,0.99,-0.75,0.1,0.65
+12:40:27,84,65,97,92.0,sedentary,Restless,False,0.99,-0.75,0.1,0.65
+12:40:28,85,65,97,92.0,sedentary,Restless,True,0.99,0.01,0.02,0.99
+12:40:29,86,65,97,92.0,sedentary,Restless,True,0.99,0.01,0.02,0.99
+12:40:30,87,66,97,92.0,sedentary,Restless,True,0.99,0.01,0.02,0.99
+12:40:31,88,66,97,92.0,sedentary,Restless,True,0.99,0.01,0.02,0.99
+12:40:32,89,66,97,92.0,sedentary,Restless,True,0.99,0.01,0.02,0.99
+12:40:33,90,67,97,92.0,sedentary,Restless,True,0.99,0.01,0.02,0.99
+12:40:34,91,67,97,92.0,sedentary,Restless,True,0.99,0.01,0.02,0.99
+12:40:35,92,67,97,92.0,sedentary,Restless,True,0.99,0.01,0.02,0.99
+12:40:36,93,67,97,92.0,sedentary,Restless,True,0.99,0.01,0.02,0.99
+12:40:37,94,67,97,92.0,sedentary,Restless,True,0.99,0.01,0.02,0.99
+12:40:38,95,67,97,92.0,sedentary,Restless,True,0.99,0.01,0.02,0.99
+12:40:39,96,67,97,92.0,sedentary,Restless,True,0.99,0.01,0.02,0.99
+12:40:40,97,67,97,92.0,sedentary,Restless,True,0.99,0.01,0.02,0.99
+12:40:41,98,67,97,92.0,sedentary,Restless,True,0.99,0.01,0.02,0.99
+12:40:42,99,67,97,92.0,sedentary,Restless,True,0.99,0.01,0.02,0.99
+12:40:43,100,66,97,92.0,sedentary,Deep Sleep,True,0.99,0.01,0.02,0.99
+12:40:44,101,66,97,92.0,sedentary,Deep Sleep,True,0.99,0.01,0.02,0.99
+12:40:45,102,66,97,92.0,sedentary,Deep Sleep,True,0.99,0.01,0.02,0.99
+12:40:46,103,65,97,92.0,sedentary,Deep Sleep,True,0.99,0.01,0.02,0.99
+12:40:47,104,65,97,92.0,sedentary,Deep Sleep,True,0.99,0.01,0.02,0.99
+12:40:48,105,64,97,92.0,sedentary,Deep Sleep,True,0.99,0.01,0.02,0.99
+12:40:49,106,64,97,92.0,sedentary,Deep Sleep,False,0.99,-0.75,0.1,0.65
+12:40:50,107,64,97,92.0,sedentary,Deep Sleep,False,0.99,-0.75,0.1,0.65
+12:40:51,108,64,97,92.0,sedentary,Deep Sleep,False,0.99,-0.75,0.1,0.65
+12:40:52,109,64,97,92.0,sedentary,Deep Sleep,False,0.99,-0.75,0.1,0.65
+12:40:53,110,64,97,92.0,sedentary,Deep Sleep,False,0.99,-0.75,0.1,0.65
+12:40:54,111,64,97,92.0,sedentary,Deep Sleep,False,0.99,-0.75,0.1,0.65
+12:40:55,112,64,97,92.0,sedentary,Deep Sleep,False,0.99,-0.75,0.1,0.65
+12:40:56,113,64,97,92.0,sedentary,Deep Sleep,False,0.99,-0.75,0.1,0.65
+12:40:57,114,64,97,92.0,sedentary,Deep Sleep,False,0.99,-0.75,0.1,0.65
+12:40:58,115,64,97,92.0,sedentary,Deep Sleep,False,0.99,-0.75,0.1,0.65
+12:40:59,116,65,97,92.0,sedentary,Deep Sleep,False,0.99,-0.75,0.1,0.65
+12:41:00,117,65,97,92.0,sedentary,Deep Sleep,False,0.99,-0.75,0.1,0.65
+12:41:01,118,66,97,92.0,sedentary,Deep Sleep,False,0.99,-0.75,0.1,0.65
+12:41:02,119,66,97,92.0,sedentary,Deep Sleep,False,0.99,-0.75,0.1,0.65
+12:41:03,120,66,97,92.0,sedentary,Deep Sleep,False,0.99,-0.75,0.1,0.65
