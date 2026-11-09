@@ -10,6 +10,7 @@ import pandas as pd
 
 # Load saved models
 scaler = joblib.load("models/feature_scaler.joblib")
+glucose_scaler = joblib.load("models/glucose_feature_scaler.joblib")
 glucose_model = joblib.load("models/best_glucose_regressor.joblib")
 risk_model = joblib.load("models/best_risk_classifier.joblib")
 bp_model = joblib.load("models/pulse_amplitude_estimator.joblib")
@@ -58,12 +59,16 @@ for i, p in enumerate(profiles, 1):
     ]
     
     # Predictions
-    pred_glucose = glucose_model.predict(df_single[features])[0]
-    pred_risk = risk_model.predict(df_single[features])[0]
+    gluc_features = ['PPG_Signal', 'Heart_Rate', 'Systolic_Peak', 'Diastolic_Peak', 'Pulse_Area', 'Pulse_Amplitude', 'Cardiac_Index_Proxy']
+    df_gluc_scaled = pd.DataFrame(glucose_scaler.transform(df_single[gluc_features]), columns=gluc_features)
+    pred_glucose = glucose_model.predict(df_gluc_scaled)[0]
+
+    df_scaled = pd.DataFrame(scaler.transform(df_single[features]), columns=features)
+    pred_risk = risk_model.predict(df_scaled)[0]
     
     bp_features = ['PPG_Signal', 'Heart_Rate', 'Pulse_Area', 'Age', 'Height', 'Weight', 'BMI']
     pred_pulse_amp = bp_model.predict(df_single[bp_features])[0]
-    is_anomaly = anomaly_model.predict(df_single[features])[0] == -1
+    is_anomaly = anomaly_model.predict(df_scaled)[0] == -1
     
     print(f"\n[Case {i}] {p['description']}")
     print(f"  Vitals Input: HR = {p['Heart_Rate']} bpm | BMI = {df_single['BMI'].values[0]:.1f} | PPG = {p['PPG_Signal']}")
