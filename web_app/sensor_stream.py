@@ -85,6 +85,11 @@ class SensorStreamManager:
             "Acc_Z_mean": 0.97, "Acc_Z_std": 0.03,
             "VM_mean": 1.01, "VM_std": 0.04, "VM_max": 1.08,
             "SMA": 1.15, "Pitch": 45.0, "Roll": 25.0,
+            "raw_sensors": {
+                "ir": 51200, "red": 48640,
+                "ax": 0.12, "ay": 0.18, "az": 0.97,
+                "t_ms": 0, "packet_count": 0
+            },
             "timestamp": datetime.now().isoformat()
         }
         self.ingest_raw(raw)
@@ -119,8 +124,9 @@ class SensorStreamManager:
         classified = self.ml_engine.classify(raw_data, self.maternal_profile)
         classified["timestamp"] = raw_data["timestamp"]
         classified["raw_inputs"] = raw_data
+        classified["raw_sensors"] = raw_data.get("raw_sensors", {})
         classified["profile"] = self.maternal_profile
-        classified["data_source"] = "Physical ESP32 (USB)" if self.serial_conn else ("Simulator (" + self.current_scenario + ")")
+        classified["data_source"] = "Physical ESP32 (USB)" if (self.serial_conn and self.serial_conn.is_open) else ("Simulator (" + self.current_scenario + ")")
 
         # 2. Deterministic Clinical Guidelines Evaluation
         guidelines = evaluate_guidelines(
@@ -311,7 +317,16 @@ class SensorStreamManager:
             "SMA": round(sma, 2),
             "Pitch": round(pitch, 1),
             "Roll": round(roll, 1),
-            "gm_mean": 15.0 if scenario == "normal_resting" else 45.0
+            "gm_mean": 15.0 if scenario == "normal_resting" else 45.0,
+            "raw_sensors": {
+                "ir": int(ppg * 100),
+                "red": int(ppg * 95),
+                "ax": round(math.sin(math.radians(pitch)) * 0.3, 3),
+                "ay": round(math.sin(math.radians(roll)) * 0.3, 3),
+                "az": round(math.cos(math.radians(max(pitch, roll))), 3),
+                "t_ms": step * 1000,
+                "packet_count": step + 1
+            }
         }
 
     # =========================================================================
@@ -407,12 +422,34 @@ class SensorStreamManager:
                         last_emit_time = now
                         ppg_feats = self.ppg_processor.extract_features()
                         motion_feats = self.motion_processor.extract_features()
-                        merged = {**ppg_feats, **motion_feats, "ts": data.get("t", int(now * 1000))}
+                        merged = {
+                            **ppg_feats,
+                            **motion_feats,
+                            "ts": data.get("t", int(now * 1000)),
+                            "raw_sensors": {
+                                "ir": int(ir),
+                                "red": int(red),
+                                "ax": round(ax, 3),
+                                "ay": round(ay, 3),
+                                "az": round(az, 3),
+                                "t_ms": int(t_ms),
+                                "packet_count": line_count
+                            }
+                        }
                         if line_count <= 10 or line_count % 200 == 0:
                             print(f"[Serial Reader] Emitting merged features (sample #{line_count}): HR={ppg_feats.get('heart_rate')}, PPG={ppg_feats.get('ppg_signal')}")
                         self.ingest_raw(merged)
                 else:
                     # Direct pre-computed JSON
+                    data["raw_sensors"] = {
+                        "ir": int(data.get("ir", data.get("ppg_signal", 512))),
+                        "red": int(data.get("red", 0)),
+                        "ax": round(float(data.get("ax", data.get("Acc_X_mean", 0.0))), 3),
+                        "ay": round(float(data.get("ay", data.get("Acc_Y_mean", 0.0))), 3),
+                        "az": round(float(data.get("az", data.get("Acc_Z_mean", 1.0))), 3),
+                        "t_ms": int(data.get("t", time.time() * 1000)),
+                        "packet_count": line_count
+                    }
                     self.ingest_raw(data)
             except serial.SerialException as e:
                 print(f"[Serial Reader] Serial port error: {e}")

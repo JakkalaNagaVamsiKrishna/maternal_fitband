@@ -424,6 +424,114 @@ Standardized Situation, Background, Assessment, and Recommendation (SBAR) clinic
       </div>
     </section>
 
+    <!-- 8. Live Raw Hardware Sensor Diagnostics Card (Verification) -->
+    <section class="mt-6 mb-8">
+      <div class="glass-card rounded-3xl p-5 md:p-6 shadow-sm border border-slate-200/90 bg-white/95">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shadow-inner">
+              ⚡
+            </div>
+            <div>
+              <div class="flex items-center space-x-2">
+                <h3 class="font-bold text-base md:text-lg text-slate-900">Direct Hardware Sensor Readings</h3>
+                <span id="rawHeartbeatBadge" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse"></span>
+                  Live Telemetry
+                </span>
+              </div>
+              <p class="text-xs text-slate-500">
+                Direct raw values from ESP32: Optical PPG (MAX30102) &amp; 6-DoF Kinematics (MPU6050)
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2 text-xs">
+            <span class="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-600 font-mono font-medium" id="rawPacketCounter">
+              Packets: 0
+            </span>
+            <span class="px-2.5 py-1 rounded-xl bg-indigo-50 text-indigo-700 font-mono font-semibold border border-indigo-100" id="rawSourceBadge">
+              Source: Connecting...
+            </span>
+          </div>
+        </div>
+
+        <!-- Live Grid of Raw Values -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 my-4">
+          <!-- MAX30102 IR -->
+          <div class="bg-slate-50/80 rounded-2xl p-3 border border-slate-100">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-rose-500 mb-0.5 flex items-center justify-between">
+              <span>PPG IR (ADC)</span>
+              <span>🔴</span>
+            </div>
+            <div class="text-lg md:text-xl font-extrabold font-mono text-slate-900" id="rawIrVal">--</div>
+            <div class="text-[10px] text-slate-400">MAX30102 IR LED</div>
+          </div>
+
+          <!-- MAX30102 RED -->
+          <div class="bg-slate-50/80 rounded-2xl p-3 border border-slate-100">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-rose-500 mb-0.5 flex items-center justify-between">
+              <span>PPG Red (ADC)</span>
+              <span>🩸</span>
+            </div>
+            <div class="text-lg md:text-xl font-extrabold font-mono text-slate-900" id="rawRedVal">--</div>
+            <div class="text-[10px] text-slate-400">MAX30102 Red LED</div>
+          </div>
+
+          <!-- MPU6050 Acc X -->
+          <div class="bg-slate-50/80 rounded-2xl p-3 border border-slate-100">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-indigo-500 mb-0.5 flex items-center justify-between">
+              <span>Acc X</span>
+              <span>↔️</span>
+            </div>
+            <div class="text-lg md:text-xl font-extrabold font-mono text-slate-900" id="rawAxVal">--</div>
+            <div class="text-[10px] text-slate-400">MPU6050 X-Axis (g)</div>
+          </div>
+
+          <!-- MPU6050 Acc Y -->
+          <div class="bg-slate-50/80 rounded-2xl p-3 border border-slate-100">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-indigo-500 mb-0.5 flex items-center justify-between">
+              <span>Acc Y</span>
+              <span>↕️</span>
+            </div>
+            <div class="text-lg md:text-xl font-extrabold font-mono text-slate-900" id="rawAyVal">--</div>
+            <div class="text-[10px] text-slate-400">MPU6050 Y-Axis (g)</div>
+          </div>
+
+          <!-- MPU6050 Acc Z -->
+          <div class="bg-slate-50/80 rounded-2xl p-3 border border-slate-100">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-indigo-500 mb-0.5 flex items-center justify-between">
+              <span>Acc Z</span>
+              <span>🧭</span>
+            </div>
+            <div class="text-lg md:text-xl font-extrabold font-mono text-slate-900" id="rawAzVal">--</div>
+            <div class="text-[10px] text-slate-400">MPU6050 Z-Axis (g)</div>
+          </div>
+
+          <!-- Posture Angles (Pitch / Roll) -->
+          <div class="bg-slate-50/80 rounded-2xl p-3 border border-slate-100">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-0.5 flex items-center justify-between">
+              <span>Pitch / Roll</span>
+              <span>📐</span>
+            </div>
+            <div class="text-base md:text-lg font-extrabold font-mono text-slate-900" id="rawAnglesVal">--° / --°</div>
+            <div class="text-[10px] text-slate-400">Incline / Tilt</div>
+          </div>
+        </div>
+
+        <!-- Raw JSON Packet Viewer -->
+        <div>
+          <div class="flex items-center justify-between text-xs text-slate-500 mb-1.5">
+            <span class="font-bold flex items-center space-x-1 text-slate-700">
+              <span>📦</span>
+              <span>Live Sensor Packet (Direct JSON Stream):</span>
+            </span>
+            <span class="text-[11px] text-slate-400 font-mono" id="rawLastTimestamp">Last packet: --</span>
+          </div>
+          <pre id="rawJsonViewer" class="bg-slate-900 text-emerald-400 font-mono text-xs p-3.5 rounded-2xl overflow-x-auto border border-slate-800 shadow-inner max-h-36 leading-relaxed">Awaiting first hardware packet...</pre>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- Profile Modal -->
@@ -853,6 +961,74 @@ Standardized Situation, Background, Assessment, and Recommendation (SBAR) clinic
         vitalsChart.data.datasets[0].data.push(vitals.glucose_mg_dl);
         vitalsChart.data.datasets[1].data.push(vitals.heart_rate_bpm);
         vitalsChart.update('none');
+      }
+
+      // 7. Update Live Direct Sensor Diagnostics Card
+      const rawSensors = data.raw_sensors || {};
+      const rawInputs = data.raw_inputs || {};
+
+      const ir = rawSensors.ir !== undefined ? rawSensors.ir : (rawInputs.ir !== undefined ? rawInputs.ir : (rawInputs.ppg_signal !== undefined ? rawInputs.ppg_signal : '--'));
+      const red = rawSensors.red !== undefined ? rawSensors.red : (rawInputs.red !== undefined ? rawInputs.red : '--');
+      const ax = rawSensors.ax !== undefined ? rawSensors.ax : (rawInputs.ax !== undefined ? rawInputs.ax : (rawInputs.Acc_X_mean !== undefined ? rawInputs.Acc_X_mean : '--'));
+      const ay = rawSensors.ay !== undefined ? rawSensors.ay : (rawInputs.ay !== undefined ? rawInputs.ay : (rawInputs.Acc_Y_mean !== undefined ? rawInputs.Acc_Y_mean : '--'));
+      const az = rawSensors.az !== undefined ? rawSensors.az : (rawInputs.az !== undefined ? rawInputs.az : (rawInputs.Acc_Z_mean !== undefined ? rawInputs.Acc_Z_mean : '--'));
+      const pitch = kin.pitch_deg !== undefined ? kin.pitch_deg : (rawInputs.Pitch !== undefined ? rawInputs.Pitch : '--');
+      const roll = kin.roll_deg !== undefined ? kin.roll_deg : (rawInputs.Roll !== undefined ? rawInputs.Roll : '--');
+
+      const elIr = document.getElementById('rawIrVal');
+      const elRed = document.getElementById('rawRedVal');
+      const elAx = document.getElementById('rawAxVal');
+      const elAy = document.getElementById('rawAyVal');
+      const elAz = document.getElementById('rawAzVal');
+      const elAngles = document.getElementById('rawAnglesVal');
+      const elCounter = document.getElementById('rawPacketCounter');
+      const elSource = document.getElementById('rawSourceBadge');
+      const elLastTs = document.getElementById('rawLastTimestamp');
+      const elJson = document.getElementById('rawJsonViewer');
+
+      if (elIr) elIr.innerText = ir;
+      if (elRed) elRed.innerText = red;
+      if (elAx) elAx.innerText = typeof ax === 'number' ? ax.toFixed(3) : ax;
+      if (elAy) elAy.innerText = typeof ay === 'number' ? ay.toFixed(3) : ay;
+      if (elAz) elAz.innerText = typeof az === 'number' ? az.toFixed(3) : az;
+      if (elAngles) elAngles.innerText = `${pitch}° / ${roll}°`;
+
+      if (elCounter && rawSensors.packet_count !== undefined) {
+        elCounter.innerText = `Packets: ${rawSensors.packet_count}`;
+      }
+      if (elSource && data.data_source) {
+        elSource.innerText = data.data_source;
+      }
+      if (elLastTs) {
+        elLastTs.innerText = `Last packet: ${data.timestamp || new Date().toLocaleTimeString()}`;
+      }
+
+      if (elJson) {
+        const rawTelemetryDisplay = {
+          timestamp: data.timestamp,
+          source: data.data_source,
+          optical_ppg_sensor: {
+            ir_count: ir,
+            red_count: red,
+            derived_ppg_mean: rawInputs.ppg_signal,
+            pulse_amplitude: vitals.pulse_amplitude
+          },
+          motion_imu_sensor: {
+            acc_x_g: ax,
+            acc_y_g: ay,
+            acc_z_g: az,
+            pitch_deg: pitch,
+            roll_deg: roll,
+            vector_magnitude: kin.vm_mean_g
+          },
+          model_inferences: {
+            heart_rate_bpm: vitals.heart_rate_bpm,
+            spo2_pct: vitals.spo2_pct,
+            est_glucose_mg_dl: vitals.glucose_mg_dl,
+            blood_pressure: vitals.blood_pressure
+          }
+        };
+        elJson.innerText = JSON.stringify(rawTelemetryDisplay, null, 2);
       }
     }
 
