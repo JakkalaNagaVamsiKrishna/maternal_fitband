@@ -1,6 +1,36 @@
+# Python & Bytecode
 __pycache__/
 *.py[cod]
 *$py.class
-.DS_Store
+*.so
+.Python
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Datasets and raw data archives (Models already trained in models/)
+data/
+*.csv.gz
+*.txt.gz
+*.csv
+train_on_fitband_data.py
+
+# Temporary, Jupyter, & Cache
 .ipynb_checkpoints/
+*.ipynb
 *.log
+.cache/
+.DS_Store
+Thumbs.db
+
+# Documentation references & presentations not needed for runtime
+*.pdf
+*.pptx
+
+# Local secrets & configs
+.env
+.env.*
+!.env.example
