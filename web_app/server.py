@@ -115,6 +115,7 @@ class StatusHandler(BaseApiHandler):
             "gemini_api_key_configured": bool(gemini_engine.api_key),
             "gemini_model": gemini_engine.model,
             "maternal_profile": stream_manager.maternal_profile,
+            "active_symptoms": stream_manager.active_symptoms,
             "models_loaded": len(ml_engine.models)
         })
 
@@ -184,6 +185,25 @@ class HistoryHandler(BaseApiHandler):
         })
 
 
+class SymptomsHandler(BaseApiHandler):
+    def get(self):
+        from web_app.clinical_guidelines import RED_FLAG_SYMPTOM_DEFINITIONS
+        self.write({
+            "active_symptoms": stream_manager.active_symptoms,
+            "definitions": RED_FLAG_SYMPTOM_DEFINITIONS
+        })
+
+    def post(self):
+        body = self.get_json_body()
+        symptoms = body.get("symptoms", [])
+        stream_manager.update_symptoms(symptoms)
+        self.write({
+            "success": True,
+            "active_symptoms": stream_manager.active_symptoms,
+            "latest": stream_manager.latest_classified
+        })
+
+
 class GenerateReportHandler(BaseApiHandler):
     def post(self):
         try:
@@ -200,7 +220,11 @@ class GenerateReportHandler(BaseApiHandler):
                 self.write({"success": False, "error": "No sensor readings available to evaluate"})
                 return
 
-            report = gemini_engine.generate_maternal_report(classified, profile)
+            report = gemini_engine.generate_maternal_report(
+                classified,
+                profile,
+                active_symptoms=stream_manager.active_symptoms
+            )
             self.write({
                 "success": True,
                 "report": report
@@ -288,6 +312,7 @@ def make_app():
         (r"/api/stream", StreamSSEHandler),
         (r"/api/history", HistoryHandler),
         (r"/api/report/generate", GenerateReportHandler),
+        (r"/api/symptoms", SymptomsHandler),
         (r"/api/simulator", SimulatorControlHandler),
         (r"/api/profile", ProfileUpdateHandler),
         (r"/api/config", ConfigHandler),

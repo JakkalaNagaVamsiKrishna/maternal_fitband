@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Feature contracts and expected column ordering for all Maternal FitBand ML models and scalers",
+  "models": {
+    "glucose_regressor": {
+      "model_file": "best_glucose_regressor.joblib",
+      "scaler_file": "glucose_feature_scaler.joblib",
+      "n_features": 7,
+      "features": [
+        "PPG_Signal",
+        "Heart_Rate",
+        "Systolic_Peak",
+        "Diastolic_Peak",
+        "Pulse_Area",
+        "Pulse_Amplitude",
+        "Cardiac_Index_Proxy"
+      ]
+    },
+    "risk_classifier": {
+      "model_file": "best_risk_classifier.joblib",
+      "scaler_file": "feature_scaler.joblib",
+      "n_features": 14,
+      "features": [
+        "PPG_Signal",
+        "Heart_Rate",
+        "Systolic_Peak",
+        "Diastolic_Peak",
+        "Pulse_Area",
+        "Pulse_Amplitude",
+        "Peak_Ratio",
+        "Normalized_Pulse_Area",
+        "BMI",
+        "Cardiac_Index_Proxy",
+        "Age",
+        "Gender",
+        "Height",
+        "Weight"
+      ]
+    },
+    "anomaly_detector": {
+      "model_file": "maternal_anomaly_detector.joblib",
+      "scaler_file": "feature_scaler.joblib",
+      "n_features": 14,
+      "features": [
+        "PPG_Signal",
+        "Heart_Rate",
+        "Systolic_Peak",
+        "Diastolic_Peak",
+        "Pulse_Area",
+        "Pulse_Amplitude",
+        "Peak_Ratio",
+        "Normalized_Pulse_Area",
+        "BMI",
+        "Cardiac_Index_Proxy",
+        "Age",
+        "Gender",
+        "Height",
+        "Weight"
+      ]
+    },
+    "bp_models": {
+      "sbp_model_file": "maternal_sbp_estimator.joblib",
+      "dbp_model_file": "maternal_dbp_estimator.joblib",
+      "htn_clf_file": "maternal_hypertension_classifier.joblib",
+      "scaler_file": "bp_feature_scaler.joblib",
+      "n_features": 10,
+      "features": [
+        "age",
+        "gender",
+        "bmi",
+        "pulse_mean",
+        "pulse_std",
+        "pulse_amp",
+        "pulse_auc",
+        "ppi_mean",
+        "ppi_std",
+        "heart_rate"
+      ]
+    },
+    "motion_hr": {
+      "model_file": "maternal_motion_robust_hr.joblib",
+      "scaler_file": "hr_motion_scaler.joblib",
+      "n_features": 8,
+      "features": [
+        "ir_std",
+        "red_std",
+        "green_std",
+        "ir_mean",
+        "red_mean",
+        "green_mean",
+        "vm_mean",
+        "vm_std"
+      ]
+    },
+    "motion_kinematics": {
+      "activity_clf_file": "maternal_activity_classifier.joblib",
+      "sleep_clf_file": "maternal_sleep_classifier.joblib",
+      "scaler_file": "mpu_act_scaler.joblib",
+      "n_features": 17,
+      "features": [
+        "Acc_X_mean",
+        "Acc_X_std",
+        "Acc_Y_mean",
+        "Acc_Y_std",
+        "Acc_Z_mean",
+        "Acc_Z_std",
+        "VM_mean",
+        "VM_std",
+        "VM_max",
+        "SMA",
+        "Gyro_X_std",
+        "Gyro_Y_std",
+        "Gyro_Z_std",
+        "GM_mean",
+        "GM_std",
+        "Pitch",
+        "Roll"
+      ]
+    }
+  }
+}

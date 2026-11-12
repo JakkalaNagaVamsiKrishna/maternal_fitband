@@ -1,19 +1,23 @@
 """
-Maternal Fitband — Gemini Clinical AI & Maternal Companion Engine
+Maternal FitBand — Gemini Clinical AI & Maternal Companion Engine
 =================================================================
-Transforms raw biometric measurements and ML classification results into
-an empathetic, intuitive, and medically safe report for expectant mothers.
+Transforms deterministic guideline evaluations and multi-sensor biometrics
+into an empathetic, intuitive, and reassuring report for expectant mothers.
 
-Dual Synthesis:
-  1. Google Gemini API (gemini-2.5-flash / gemini-1.5-flash)
-  2. Deterministic ACOG & ADA Clinical Knowledge Engine (100% offline fallback)
+Architecture Rule (per Clinical Audit):
+  The guideline layer in Python determines ALL alert levels and medical actions.
+  Gemini ONLY rephrases predetermined decisions in a reassuring tone.
+  Gemini is strictly prohibited from altering risk tiers or issuing diagnoses.
 """
 
 import os
 import json
 import urllib.request
 import urllib.error
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
+
+from .clinical_guidelines import evaluate_guidelines, PROTOTYPE_DISCLAIMER
+
 
 class MaternalGeminiEngine:
     def __init__(self, api_key: Optional[str] = None, model: str = "gemini-2.5-flash"):
@@ -25,78 +29,101 @@ class MaternalGeminiEngine:
             self.api_key = api_key.strip()
             print("[Gemini Engine] API Key updated.")
 
-    def generate_maternal_report(self, classified_data: Dict[str, Any], profile: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_maternal_report(
+        self,
+        classified_data: Dict[str, Any],
+        profile: Dict[str, Any],
+        active_symptoms: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
         """
         Generates the maternal health report.
-        Tries Gemini API first if key is present; falls back seamlessly to deterministic ACOG engine.
+        1. Evaluates deterministic ACOG/NICE clinical rules.
+        2. If Gemini API is available, prompts Gemini to rephrase predetermined guidance in a reassuring tone.
+        3. Falls back seamlessly to offline rule synthesis if API is unavailable.
         """
         vitals = classified_data.get("vitals", {})
         kinematics = classified_data.get("kinematics", {})
-        clinical = classified_data.get("clinical_status", {})
+        active_symptoms = active_symptoms or []
 
-        # Build prompt and try Gemini
+        # 1. Deterministic Guideline Evaluation (Authoritative Ground Truth)
+        guidelines = evaluate_guidelines(vitals, kinematics, profile, active_symptoms)
+
+        # 2. Rephrase via Gemini if API key present
         gemini_text = None
-        source = "ACOG Clinical Knowledge Engine (Offline Mode)"
+        source = "ACOG / NICE Rule Engine (Offline Deterministic Mode)"
 
         if self.api_key:
             try:
-                gemini_text = self._call_gemini(classified_data, profile)
+                gemini_text = self._call_gemini(classified_data, profile, guidelines)
                 if gemini_text:
-                    source = f"Google Gemini AI ({self.model})"
+                    source = f"Google Gemini AI ({self.model}) [Rephrasing Guideline Layer]"
             except Exception as e:
-                print(f"[WARN] Gemini API call failed: {e}. Falling back to deterministic engine.")
+                print(f"[WARN] Gemini API call failed: {e}. Using deterministic guideline guidance.")
 
-        # If Gemini succeeded, parse or format its sections
         if gemini_text:
-            report_sections = self._parse_gemini_output(gemini_text, classified_data, profile)
+            report_sections = self._parse_gemini_output(gemini_text, classified_data, profile, guidelines)
         else:
-            report_sections = self._generate_deterministic_report(classified_data, profile)
+            report_sections = self._generate_deterministic_report(classified_data, profile, guidelines)
 
         report_sections["engine_source"] = source
         report_sections["raw_vitals"] = vitals
         report_sections["kinematics"] = kinematics
-        report_sections["clinical_status"] = clinical
+        report_sections["clinical_guidelines"] = guidelines
         report_sections["patient_profile"] = profile
+        report_sections["prototype_disclaimer"] = PROTOTYPE_DISCLAIMER
 
         return report_sections
 
-    def _call_gemini(self, classified_data: Dict[str, Any], profile: Dict[str, Any]) -> Optional[str]:
-        vitals = classified_data["vitals"]
-        kin = classified_data["kinematics"]
-        clin = classified_data["clinical_status"]
+    def _call_gemini(
+        self,
+        classified_data: Dict[str, Any],
+        profile: Dict[str, Any],
+        guidelines: Dict[str, Any]
+    ) -> Optional[str]:
+        vitals = classified_data.get("vitals", {})
+        kin = classified_data.get("kinematics", {})
+        cards = guidelines.get("cards", {})
+        bp = cards.get("blood_pressure", {})
+        gluc = cards.get("glucose", {})
+        kin_card = cards.get("kinematics", {})
+        red_flags = guidelines.get("red_flag_details", [])
 
-        prompt = f"""You are the warm, supportive Antigravity Maternal Health Fitband Care Companion.
-Your voice is reassuring, medically accurate, practical, and deeply encouraging.
-You are talking directly to pregnant mother {profile.get('name', 'Mom')}, who is {profile.get('gestational_week', 28)} weeks pregnant (Trimester {clin.get('trimester', 3)}).
+        red_flags_str = ", ".join([rf["title"] for rf in red_flags]) if red_flags else "None reported"
 
-Biometric readings from her wearable band:
-- Non-Invasive Blood Glucose: {vitals.get('glucose_mg_dl')} mg/dL ({vitals.get('glycemic_label')})
-- Heart Rate: {vitals.get('heart_rate_bpm')} bpm
-- Oxygen Saturation (SpO2): {vitals.get('spo2_pct')}%
-- Blood Pressure: {vitals.get('blood_pressure')} mmHg ({vitals.get('htn_status')})
-- Activity: {kin.get('activity_label')}
-- Sleep / Rest: {kin.get('sleep_label')} (Supine/Flat-on-back Alert: {kin.get('supine_alert')})
-- Overall Maternal Risk Tier: {clin.get('overall_risk_level')}
-- Clinical Flags: {', '.join(clin.get('risk_flags', [])) or 'None (All normal)'}
+        prompt = f"""You are the supportive, warm Maternal Health FitBand Companion for pregnant mother {profile.get('name', 'Mom')}.
+She is {profile.get('gestational_week', 28)} weeks pregnant (Trimester {profile.get('trimester', 3)}).
 
-Guidelines:
-1. Explain in simple, intuitive, non-technical language what is happening with her body and baby right now.
-2. If supine back-sleeping is True, urgently but gently guide her to immediately turn to her LEFT side with a pillow between knees to optimize blood flow to the placenta.
-3. If glucose is elevated (>140 mg/dL), provide simple meal and walking tips without causing panic.
-4. Structure your response into these 4 clear sections using emojis:
-   ### 💖 How You & Baby Are Doing Right Now
-   ### 🥗 Nourishment & Blood Sugar Tip
-   ### 🌙 Rest, Sleep & Posture Coaching
-   ### 🏃 Movement & Energy Level
-   ### 🩺 Doctor Note (SBAR Summary)
-5. Keep explanations warm, concise, and under 350 words total.
+*** STRICT CLINICAL BOUNDARIES (NON-NEGOTIABLE) ***
+1. Alert levels and medical decisions have ALREADY been computed by the deterministic clinical guideline engine.
+2. DO NOT change the risk tier ({guidelines.get('overall_tier')}).
+3. DO NOT diagnose any condition (e.g., you cannot diagnose gestational diabetes or preeclampsia; diagnosis requires lab tests and a physician).
+4. If red-flag symptoms or critical alerts are present, your tone must be calm, direct, and firmly insist on contacting a physician or visiting labor & delivery immediately.
+5. Your sole responsibility is to rephrase the clinical decisions below in an encouraging, clear, and reassuring tone.
+
+PREDETERMINED CLINICAL FINDINGS:
+- Overall Status: {guidelines.get('overall_badge')} ({guidelines.get('overall_tier')})
+- Headline: {guidelines.get('headline')}
+- Primary Required Action: {guidelines.get('primary_action')}
+- Reported Emergency Symptoms: {red_flags_str}
+- Blood Pressure: {vitals.get('blood_pressure')} mmHg -> Status: {bp.get('status')}. Action: {bp.get('action')}
+- Blood Glucose Estimate: {vitals.get('glucose_mg_dl')} mg/dL -> Status: {gluc.get('status')}. Action: {gluc.get('action')}
+- Heart Rate: {vitals.get('heart_rate_bpm')} BPM
+- Posture & Movement: {kin_card.get('status')}. Action: {kin_card.get('action')}
+
+Format your response strictly into these 4 concise sections:
+### 💖 How You & Baby Are Doing Right Now
+### 🥗 Nourishment & Blood Sugar Tip
+### 🌙 Rest, Sleep & Posture Coaching
+### 🩺 Doctor Summary (SBAR Format)
+
+Keep total length under 300 words. Always include reassurance where appropriate without downplaying necessary medical contact.
 """
 
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
-                "temperature": 0.4,
+                "temperature": 0.3,
                 "maxOutputTokens": 1024
             }
         }
@@ -117,17 +144,19 @@ Guidelines:
                     return parts[0].get("text", "")
         return None
 
-    def _parse_gemini_output(self, text: str, data: Dict[str, Any], profile: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Structures the raw Gemini markdown into accessible card components.
-        """
+    def _parse_gemini_output(
+        self,
+        text: str,
+        data: Dict[str, Any],
+        profile: Dict[str, Any],
+        guidelines: Dict[str, Any]
+    ) -> Dict[str, Any]:
         return {
             "full_text": text,
             "condition_summary": self._extract_section(text, "How You & Baby Are Doing Right Now", "Nourishment"),
             "nutrition_guidance": self._extract_section(text, "Nourishment & Blood Sugar Tip", "Rest, Sleep"),
-            "sleep_guidance": self._extract_section(text, "Rest, Sleep & Posture Coaching", "Movement"),
-            "activity_guidance": self._extract_section(text, "Movement & Energy Level", "Doctor Note"),
-            "doctor_sbar": self._extract_section(text, "Doctor Note", None) or self._build_sbar(data, profile)
+            "sleep_guidance": self._extract_section(text, "Rest, Sleep & Posture Coaching", "Doctor Summary"),
+            "doctor_sbar": self._extract_section(text, "Doctor Summary", None) or self._build_sbar(data, profile, guidelines)
         }
 
     def _extract_section(self, text: str, start_header: str, end_header: Optional[str]) -> str:
@@ -135,8 +164,7 @@ Guidelines:
         start_idx = lower_text.find(start_header.lower())
         if start_idx == -1:
             return ""
-        
-        # Advance past the header line
+
         newline_idx = text.find("\n", start_idx)
         content_start = newline_idx + 1 if newline_idx != -1 else start_idx + len(start_header)
 
@@ -147,86 +175,77 @@ Guidelines:
 
         return text[content_start:].strip("# \n\r")
 
-    def _generate_deterministic_report(self, data: Dict[str, Any], profile: Dict[str, Any]) -> Dict[str, Any]:
+    def _generate_deterministic_report(
+        self,
+        data: Dict[str, Any],
+        profile: Dict[str, Any],
+        guidelines: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
-        ACOG-aligned deterministic clinical report generator.
+        Pure rule-based clinical synthesis with 100% adherence to medical thresholds.
         """
-        vitals = data["vitals"]
-        kin = data["kinematics"]
-        clin = data["clinical_status"]
-        t = clin.get("trimester", 3)
-        week = clin.get("gestational_week", 28)
-        gluc = vitals.get("glucose_mg_dl", 100.0)
-        hr = vitals.get("heart_rate_bpm", 76)
-        sbp = vitals.get("sbp_mmhg", 118)
-        dbp = vitals.get("dbp_mmhg", 78)
-        supine = kin.get("supine_alert", False)
+        cards = guidelines.get("cards", {})
+        bp = cards.get("blood_pressure", {})
+        gluc = cards.get("glucose", {})
+        kin_card = cards.get("kinematics", {})
+        red_flags = guidelines.get("red_flag_details", [])
 
         # 1. Condition Summary
         summary_points = []
-        if clin["overall_risk_level"] == "CRITICAL" and supine:
-            summary_points.append("🚨 **Immediate Posture Adjustment Needed:** You are currently lying flat on your back. Please roll over to your left side right now to keep blood flowing easily to your baby.")
-        elif clin["overall_risk_level"] in ("HIGH", "CRITICAL"):
-            summary_points.append(f"⚠️ **Attention Needed:** We noticed elevated physiological readings (Glucose {gluc} mg/dL, BP {sbp}/{dbp} mmHg). Rest calmly and follow the guidance below.")
+        if red_flags:
+            titles = ", ".join([rf["title"] for rf in red_flags])
+            summary_points.append(
+                f"🚨 **Warning Signs Active ({titles}):** {guidelines.get('primary_action')}"
+            )
+        elif guidelines.get("overall_tier") == "CRITICAL":
+            summary_points.append(f"⚠️ **Attention Required:** {guidelines.get('headline')}. {guidelines.get('primary_action')}")
         else:
-            summary_points.append(f"💖 **You and Baby Are Doing Wonderful!** Your vital signs are currently stable and in healthy harmony for Week {week} (Trimester {t}).")
+            summary_points.append(f"💖 **You and Baby Are Doing Well!** {guidelines.get('headline')}. {guidelines.get('primary_action')}")
 
         # 2. Nutrition & Blood Sugar
-        diet_points = []
-        if gluc >= 140:
-            diet_points.append("🥗 **Post-Meal Glucose Surge:** Your blood sugar is currently elevated. Drink a tall glass of cool water (300 mL) and take a gentle 10-minute slow indoor stroll to help your muscles naturally absorb glucose.")
-            diet_points.append("🚫 **For your next snack:** Skip sugary snacks and juices. Choose high-protein, fiber-rich options like a handful of almonds, cucumbers with hummus, or Greek yogurt.")
-        elif gluc < 60:
-            diet_points.append("⚠️ **Low Blood Sugar Alert:** Have 15g of fast-acting carbohydrate right away (half a cup of fresh fruit juice or 1 spoon of honey), followed by whole grain crackers.")
-        else:
-            diet_points.append("✅ **Blood Sugar in Ideal Target:** Your glycemic response is steady and nourishing your baby effectively.")
-            diet_points.append("🥑 **Tip:** Continue pairing complex carbohydrates with healthy proteins and fats (eggs, nuts, lentils, avocado) and stay well-hydrated.")
+        diet_points = [
+            f"**Blood Sugar Status:** {gluc.get('summary', '')}",
+            f"👉 **Action:** {gluc.get('action', '')}"
+        ]
 
         # 3. Sleep & Posture
-        sleep_points = []
-        if supine and t >= 2:
-            sleep_points.append("🚨 **Roll Onto Your Left Side:** Sleeping flat on your back in the second or third trimester presses the growing womb against your main blood vessels (inferior vena cava). Rolling to your left restores optimal oxygen flow to your little one.")
-            sleep_points.append("🛌 **Pillow Trick:** Tuck a firm pillow behind your lower back and place a cushion between your bent knees for support.")
-        elif kin.get("sleep_code") == 2:
-            sleep_points.append("🧘 **Restless Night:** We noticed some tossing and turning. Try a 5-minute deep belly breathing routine in a cool room (65-68°F / 19°C) and use a maternity U-pillow.")
-        else:
-            sleep_points.append("🛌 **Safe Posture Detected:** You are resting in a safe lateral posture that supports optimal blood circulation.")
+        sleep_points = [
+            f"**Ergonomics & Movement:** {kin_card.get('summary', '')}",
+            f"👉 **Recommendation:** {kin_card.get('action', '')}"
+        ]
 
-        # 4. Movement & Energy
-        activity_points = []
-        if kin.get("activity_code") == 3:
-            activity_points.append("🛑 **Time to Rest:** High kinematic impact or sudden exertion detected! Sit down comfortably in a cool spot, take slow deep breaths, and drink water.")
-        elif kin.get("activity_code") == 1:
-            activity_points.append("🏃 **Great Walking Rhythm:** Gentle walking is fantastic for prenatal circulation and natural glucose control. Aim for 20-30 minutes.")
-        else:
-            activity_points.append("🧘 **Gentle Movement:** Remember to stand up, stretch your ankles, and take short strolls if you've been sitting for more than an hour.")
-
-        sbar = self._build_sbar(data, profile)
+        sbar = self._build_sbar(data, profile, guidelines)
 
         return {
-            "full_text": "\n\n".join(summary_points + diet_points + sleep_points + activity_points),
+            "full_text": "\n\n".join(summary_points + diet_points + sleep_points),
             "condition_summary": "\n".join(summary_points),
             "nutrition_guidance": "\n".join(diet_points),
             "sleep_guidance": "\n".join(sleep_points),
-            "activity_guidance": "\n".join(activity_points),
             "doctor_sbar": sbar
         }
 
-    def _build_sbar(self, data: Dict[str, Any], profile: Dict[str, Any]) -> str:
-        vitals = data["vitals"]
-        kin = data["kinematics"]
-        clin = data["clinical_status"]
-        return (
-            f"**SITUATION:** Patient {profile.get('name', 'Mom')} (Gestational Week {clin.get('gestational_week', 28)}, Trimester {clin.get('trimester', 3)}). "
-            f"Current Vitals: Glucose {vitals.get('glucose_mg_dl')} mg/dL, HR {vitals.get('heart_rate_bpm')} bpm, SpO2 {vitals.get('spo2_pct')}%, "
-            f"BP {vitals.get('blood_pressure')} mmHg, Activity: '{kin.get('activity_label')}', Supine Alert: {kin.get('supine_alert')}.\n\n"
+    def _build_sbar(self, data: Dict[str, Any], profile: Dict[str, Any], guidelines: Dict[str, Any]) -> str:
+        vitals = data.get("vitals", {})
+        kin = data.get("kinematics", {})
+        cards = guidelines.get("cards", {})
+        bp = cards.get("blood_pressure", {})
+        gluc = cards.get("glucose", {})
+        red_flags = guidelines.get("red_flag_details", [])
+
+        sbar = (
+            f"**SITUATION:** Patient {profile.get('name', 'Mom')} (Gestational Week {profile.get('gestational_week', 28)}, "
+            f"Age {profile.get('age', 29)}). Estimated Vitals: BP {vitals.get('blood_pressure')} mmHg ({bp.get('status')}), "
+            f"Glucose {vitals.get('glucose_mg_dl')} mg/dL ({gluc.get('status')}), HR {vitals.get('heart_rate_bpm')} BPM, "
+            f"SpO2 {vitals.get('spo2_pct')}%. Reported Symptoms: {', '.join([rf['title'] for rf in red_flags]) or 'None'}.\n\n"
             f"**BACKGROUND:** Context: {profile.get('meal_context', 'postprandial').replace('_', ' ').title()}. "
             f"Pre-existing risk factors: {', '.join(profile.get('conditions', ['None']))}.\n\n"
-            f"**ASSESSMENT:** Overall Risk Level: {clin.get('overall_risk_level')}. "
-            f"Active Flags: {', '.join(clin.get('risk_flags', [])) or 'No acute anomalies'}.\n\n"
-            f"**RECOMMENDATION:** Maternal: Maintain left-lateral sleep posture and low-GI nutritional intake. "
-            f"Clinical: {'Review continuous glycemic log and evaluate ambulatory BP monitoring.' if clin.get('overall_risk_level') in ('HIGH', 'CRITICAL') else 'Continue routine antenatal care.'}"
+            f"**ASSESSMENT:** Overall Guideline Tier: {guidelines.get('overall_badge')} ({guidelines.get('overall_tier')}). "
+            f"Clinical Summary: {guidelines.get('headline')}.\n\n"
+            f"**RECOMMENDATION:** {guidelines.get('primary_action')} "
+            f"(Note: Prototype device estimates require formal clinical verification)."
         )
+        return sbar
+
 
 # Global singleton
 gemini_engine = MaternalGeminiEngine()

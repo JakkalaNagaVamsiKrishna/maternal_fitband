@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Maternal Fitband — Continuous AI Health Companion</title>
-  
+  <title>Maternal FitBand — Continuous AI Health Companion</title>
+
   <!-- PWA meta tags -->
   <meta name="theme-color" content="#F43F5E">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -40,12 +40,6 @@
               700: '#BE123C',
               800: '#9F1239',
               900: '#881337',
-            },
-            sage: {
-              50: '#F4F7F5',
-              100: '#E5EDE7',
-              500: '#52796F',
-              600: '#354F52',
             }
           }
         }
@@ -69,23 +63,28 @@
       70% { transform: scale(1); }
     }
     .glass-card {
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(12px);
       border: 1px solid rgba(244, 63, 94, 0.08);
+    }
+    .symptom-chip.active {
+      background-color: #BE123C;
+      color: #FFFFFF;
+      border-color: #BE123C;
     }
   </style>
 </head>
 <body class="min-h-screen text-slate-800 flex flex-col antialiased selection:bg-maternal-200">
 
   <!-- Header -->
-  <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-rose-100 shadow-sm">
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-rose-100 shadow-sm">
     <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center space-x-3">
         <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-maternal-500 to-rose-400 flex items-center justify-center text-white shadow-md shadow-rose-200 text-xl">
           🤰
         </div>
         <div>
-          <h1 class="text-lg md:text-xl font-bold font-heading text-slate-900 leading-tight">Maternal Care</h1>
+          <h1 class="text-lg md:text-xl font-bold font-heading text-slate-900 leading-tight">Maternal FitBand</h1>
           <div class="flex items-center space-x-2 text-xs text-slate-500">
             <span id="liveBadge" class="inline-flex items-center px-2 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
@@ -97,19 +96,16 @@
       </div>
 
       <div class="flex items-center space-x-2">
-        <!-- Profile Button -->
         <button onclick="openModal('profileModal')" class="p-2 rounded-xl text-slate-600 hover:text-maternal-600 hover:bg-rose-50 transition border border-slate-200/80 flex items-center space-x-1.5 text-xs font-medium">
           <span class="text-base">👤</span>
           <span class="hidden sm:inline" id="headerProfileName">Priya (W28)</span>
         </button>
 
-        <!-- Source / Controls Button -->
         <button onclick="openModal('sourceModal')" class="p-2 rounded-xl text-slate-600 hover:text-maternal-600 hover:bg-rose-50 transition border border-slate-200/80 flex items-center space-x-1.5 text-xs font-medium">
           <span class="text-base">🎛️</span>
           <span class="hidden md:inline">Sensor Source</span>
         </button>
 
-        <!-- Gemini API Key Button -->
         <button onclick="openModal('apiKeyModal')" class="p-2 rounded-xl text-slate-600 hover:text-maternal-600 hover:bg-rose-50 transition border border-slate-200/80 flex items-center space-x-1.5 text-xs font-medium">
           <span class="text-base">✨</span>
           <span class="hidden md:inline" id="apiKeyStatus">Gemini AI</span>
@@ -119,164 +115,215 @@
   </header>
 
   <!-- Main Container -->
-  <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-5 space-y-6">
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-4 space-y-4">
 
-    <!-- Emergency / Safety Alert Banner (Hidden by default) -->
-    <div id="supineAlertBanner" class="hidden rounded-2xl bg-gradient-to-r from-red-500 to-rose-600 text-white p-4 shadow-lg shadow-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-bounce">
+    <!-- 1. Mandatory Clinical Research Prototype Disclaimer -->
+    <div class="rounded-xl bg-slate-100/90 border border-slate-200 px-3.5 py-2 text-xs text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+      <div class="flex items-start sm:items-center space-x-2">
+        <span class="text-base">🔬</span>
+        <span>
+          <strong>Prototype Notice:</strong> Vital sign estimates (BP, Glucose) require clinical validation.
+          This device does <em>not</em> provide formal diagnoses or replace professional obstetric medical care.
+        </span>
+      </div>
+      <span class="self-start sm:self-auto text-[10px] uppercase font-bold text-slate-400 tracking-wider">ACOG/NICE Grounded</span>
+    </div>
+
+    <!-- 2. Emergency Red-Flag Warning Signs Checklist -->
+    <section class="bg-amber-50/70 border border-amber-200 rounded-2xl p-3 sm:p-4 shadow-sm">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+        <div class="flex items-center space-x-2">
+          <span class="text-xl">⚠️</span>
+          <h2 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-amber-900">
+            Emergency Warning Signs Checklist
+          </h2>
+        </div>
+        <span class="text-[11px] text-amber-800 font-medium">
+          Tap any symptom you are feeling right now:
+        </span>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
+        <button onclick="toggleSymptom('severe_headache')" id="sym_severe_headache" class="symptom-chip p-2 rounded-xl border border-amber-300 bg-white hover:bg-amber-100 text-left transition flex flex-col justify-between">
+          <span class="font-bold text-slate-800">Severe Headache</span>
+          <span class="text-[10px] text-slate-500 mt-1">Not relieved by rest</span>
+        </button>
+
+        <button onclick="toggleSymptom('visual_disturbances')" id="sym_visual_disturbances" class="symptom-chip p-2 rounded-xl border border-amber-300 bg-white hover:bg-amber-100 text-left transition flex flex-col justify-between">
+          <span class="font-bold text-slate-800">Vision Changes</span>
+          <span class="text-[10px] text-slate-500 mt-1">Blurry, spots, flashes</span>
+        </button>
+
+        <button onclick="toggleSymptom('epigastric_pain')" id="sym_epigastric_pain" class="symptom-chip p-2 rounded-xl border border-amber-300 bg-white hover:bg-amber-100 text-left transition flex flex-col justify-between">
+          <span class="font-bold text-slate-800">Upper-Right Pain</span>
+          <span class="text-[10px] text-slate-500 mt-1">Below ribs / stomach</span>
+        </button>
+
+        <button onclick="toggleSymptom('shortness_of_breath')" id="sym_shortness_of_breath" class="symptom-chip p-2 rounded-xl border border-amber-300 bg-white hover:bg-amber-100 text-left transition flex flex-col justify-between">
+          <span class="font-bold text-slate-800">Short of Breath</span>
+          <span class="text-[10px] text-slate-500 mt-1">Difficulty breathing</span>
+        </button>
+
+        <button onclick="toggleSymptom('sudden_swelling')" id="sym_sudden_swelling" class="symptom-chip p-2 rounded-xl border border-amber-300 bg-white hover:bg-amber-100 text-left transition flex flex-col justify-between">
+          <span class="font-bold text-slate-800">Sudden Swelling</span>
+          <span class="text-[10px] text-slate-500 mt-1">Face, eyes, or hands</span>
+        </button>
+
+        <button onclick="toggleSymptom('decreased_fetal_movement')" id="sym_decreased_fetal_movement" class="symptom-chip p-2 rounded-xl border border-amber-300 bg-white hover:bg-amber-100 text-left transition flex flex-col justify-between">
+          <span class="font-bold text-slate-800">Less Baby Kicks</span>
+          <span class="text-[10px] text-slate-500 mt-1">Drop in movement</span>
+        </button>
+      </div>
+
+      <div id="symptomsActiveAlert" class="hidden mt-3 p-3 bg-red-600 text-white rounded-xl text-xs font-semibold flex items-center justify-between animate-pulse">
+        <span>🚨 Warning signs active: Contact your doctor, midwife, or visit emergency care immediately regardless of sensor numbers.</span>
+        <button onclick="clearAllSymptoms()" class="px-2.5 py-1 bg-white text-red-700 rounded-lg text-[11px] font-bold">Clear</button>
+      </div>
+    </section>
+
+    <!-- 3. Primary Guideline Alert Banner -->
+    <div id="mainGuidelineBanner" class="rounded-2xl p-4 text-white shadow-md transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-emerald-600">
       <div class="flex items-start space-x-3">
-        <span class="text-3xl">🚨</span>
+        <span id="bannerIcon" class="text-3xl">💖</span>
         <div>
-          <h3 class="font-bold text-base md:text-lg">Roll Onto Your Left Side Now!</h3>
-          <p class="text-xs md:text-sm text-rose-100 mt-0.5">
-            You are lying flat on your back (Supine posture). In Trimesters 2 and 3, this compresses the inferior vena cava and restricts blood flow to your baby.
+          <div class="flex items-center space-x-2">
+            <span id="bannerTierBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/20 text-white">ALL NORMAL</span>
+            <h3 id="bannerHeadline" class="font-bold text-base md:text-lg">All Vitals in Healthy Harmony</h3>
+          </div>
+          <p id="bannerAction" class="text-xs md:text-sm text-white/90 mt-1">
+            Your physiological readings are stable. Continue normal activities and regular hydration.
           </p>
         </div>
       </div>
-      <button onclick="dismissAlert('supineAlertBanner')" class="self-end sm:self-center px-4 py-1.5 bg-white text-rose-600 rounded-xl text-xs font-bold shadow hover:bg-rose-50">
-        I Turned to My Side
-      </button>
     </div>
 
-    <!-- General Risk Banner -->
-    <div id="clinicalRiskBanner" class="hidden rounded-2xl p-4 text-sm font-medium transition flex items-center justify-between">
-      <div class="flex items-center space-x-2.5">
-        <span id="riskBannerIcon" class="text-2xl">⚠️</span>
-        <span id="riskBannerText">Clinical Alert</span>
-      </div>
-      <span id="riskTierBadge" class="text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider"></span>
-    </div>
-
-    <!-- Vitals Dashboard Cards (Mobile 2-col, Desktop 4-col) -->
+    <!-- 4. Simplified Mother-Facing Vitals Cards (1 card per value + What to do next) -->
     <section>
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 flex items-center space-x-1.5">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500 flex items-center space-x-1.5">
           <span>🩺</span>
-          <span>Live Maternal Vitals</span>
+          <span>Core Maternal Readings</span>
         </h2>
         <span id="lastUpdated" class="text-xs text-slate-400 font-mono">Updating...</span>
       </div>
 
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
 
-        <!-- 1. Glucose Card -->
-        <div class="glass-card rounded-2xl p-4 shadow-sm border hover:border-maternal-300 transition relative overflow-hidden">
-          <div class="flex items-center justify-between text-slate-500 mb-1">
-            <span class="text-xs font-semibold">Blood Glucose</span>
-            <span class="text-lg">🩸</span>
-          </div>
-          <div class="flex items-baseline space-x-1.5 my-1">
-            <span id="valGlucose" class="text-2xl sm:text-3xl font-extrabold font-heading text-slate-900">--</span>
-            <span class="text-xs text-slate-500 font-medium">mg/dL</span>
-          </div>
-          <div class="mt-2">
-            <span id="badgeGlucose" class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded-lg bg-slate-100 text-slate-700">
-              Analyzing
-            </span>
-          </div>
-          <div class="mt-2 text-[10px] text-slate-400">Target: 60 - 140 mg/dL</div>
-        </div>
-
-        <!-- 2. Heart Rate Card -->
-        <div class="glass-card rounded-2xl p-4 shadow-sm border hover:border-maternal-300 transition relative overflow-hidden">
-          <div class="flex items-center justify-between text-slate-500 mb-1">
-            <span class="text-xs font-semibold">Heart Rate</span>
-            <span class="text-lg text-rose-500 pulse-animation">❤️</span>
-          </div>
-          <div class="flex items-baseline space-x-1.5 my-1">
-            <span id="valHR" class="text-2xl sm:text-3xl font-extrabold font-heading text-slate-900">--</span>
-            <span class="text-xs text-slate-500 font-medium">BPM</span>
-          </div>
-          <div class="mt-2">
-            <span id="badgeHR" class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded-lg bg-emerald-50 text-emerald-700">
-              Normal Rhythm
-            </span>
-          </div>
-          <div class="mt-2 text-[10px] text-slate-400">Resting Safe: 60 - 105 BPM</div>
-        </div>
-
-        <!-- 3. Blood Pressure Card -->
-        <div class="glass-card rounded-2xl p-4 shadow-sm border hover:border-maternal-300 transition relative overflow-hidden">
-          <div class="flex items-center justify-between text-slate-500 mb-1">
-            <span class="text-xs font-semibold">Blood Pressure</span>
-            <span class="text-lg">🫀</span>
-          </div>
-          <div class="flex items-baseline space-x-1.5 my-1">
-            <span id="valBP" class="text-2xl sm:text-3xl font-extrabold font-heading text-slate-900">--/--</span>
-            <span class="text-xs text-slate-500 font-medium">mmHg</span>
-          </div>
-          <div class="mt-2">
-            <span id="badgeBP" class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded-lg bg-slate-100 text-slate-700">
-              Normotensive
-            </span>
-          </div>
-          <div class="mt-2 text-[10px] text-slate-400">ACOG Target: &lt; 140/90</div>
-        </div>
-
-        <!-- 4. SpO2 Card -->
-        <div class="glass-card rounded-2xl p-4 shadow-sm border hover:border-maternal-300 transition relative overflow-hidden">
-          <div class="flex items-center justify-between text-slate-500 mb-1">
-            <span class="text-xs font-semibold">Oxygen Saturation</span>
-            <span class="text-lg">🫁</span>
-          </div>
-          <div class="flex items-baseline space-x-1.5 my-1">
-            <span id="valSpO2" class="text-2xl sm:text-3xl font-extrabold font-heading text-slate-900">--</span>
-            <span class="text-xs text-slate-500 font-medium">%</span>
-          </div>
-          <div class="mt-2">
-            <span id="badgeSpO2" class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded-lg bg-emerald-50 text-emerald-700">
-              Optimal (98%)
-            </span>
-          </div>
-          <div class="mt-2 text-[10px] text-slate-400">Safe Target: &gt;= 95%</div>
-        </div>
-
-        <!-- 5. Movement & Kinematics Card -->
-        <div class="glass-card rounded-2xl p-4 shadow-sm border hover:border-maternal-300 transition col-span-1">
-          <div class="flex items-center justify-between text-slate-500 mb-1">
-            <span class="text-xs font-semibold">Movement / Activity</span>
-            <span class="text-lg">🏃</span>
-          </div>
-          <div class="text-base sm:text-lg font-bold text-slate-900 my-1 truncate" id="valActivity">
-            Sedentary
-          </div>
-          <div class="mt-2">
-            <span id="badgeActivity" class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded-lg bg-slate-100 text-slate-700">
-              Resting
-            </span>
-          </div>
-          <div class="mt-2 text-[10px] text-slate-400">Acceleration: <span id="valVM">1.02g</span></div>
-        </div>
-
-        <!-- 6. Sleep & Posture Card -->
-        <div class="glass-card rounded-2xl p-4 shadow-sm border hover:border-maternal-300 transition col-span-1">
-          <div class="flex items-center justify-between text-slate-500 mb-1">
-            <span class="text-xs font-semibold">Sleep & Ergonomics</span>
-            <span class="text-lg">🌙</span>
-          </div>
-          <div class="text-base sm:text-lg font-bold text-slate-900 my-1 truncate" id="valSleep">
-            Awake
-          </div>
-          <div class="mt-2">
-            <span id="badgeSleepPosture" class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded-lg bg-emerald-50 text-emerald-700">
-              Safe Lateral
-            </span>
-          </div>
-          <div class="mt-2 text-[10px] text-slate-400">Tilt: Pitch <span id="valPitch">12°</span>, Roll <span id="valRoll">15°</span></div>
-        </div>
-
-        <!-- 7. Maternal Anomaly Indicator -->
-        <div class="glass-card rounded-2xl p-4 shadow-sm border hover:border-maternal-300 transition col-span-2">
-          <div class="flex items-center justify-between text-slate-500 mb-1">
-            <span class="text-xs font-semibold">Biometric Stability (Isolation Forest)</span>
-            <span class="text-lg">🛡️</span>
-          </div>
-          <div class="flex items-center justify-between mt-2">
-            <div>
-              <div id="valAnomalyStatus" class="text-sm font-bold text-emerald-700">Stable Maternal Pattern</div>
-              <p class="text-[11px] text-slate-500 mt-0.5">Continuous unsupervised cross-vital verification</p>
+        <!-- Card 1: Blood Pressure (ACOG Guideline Grounded) -->
+        <div class="glass-card rounded-2xl p-4 shadow-sm border hover:border-maternal-300 transition flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-slate-500 mb-1">
+              <span class="text-xs font-bold uppercase tracking-wider">Blood Pressure</span>
+              <span class="text-xl">🫀</span>
             </div>
-            <div id="badgeAnomaly" class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">
-              ✓
+            <div class="flex items-baseline space-x-1.5 my-1">
+              <span id="valBP" class="text-2xl sm:text-3xl font-extrabold font-heading text-slate-900">118/76</span>
+              <span class="text-xs text-slate-500 font-medium">mmHg</span>
+            </div>
+            <div class="mt-1">
+              <span id="badgeBP" class="inline-block px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700">
+                Normotensive
+              </span>
+            </div>
+            <p id="descBP" class="text-xs text-slate-600 mt-2 leading-snug">
+              Estimated blood pressure is in a healthy range.
+            </p>
+          </div>
+          <div class="mt-3 pt-2.5 border-t border-slate-100">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">What to do next</span>
+            <div id="actionBP" class="text-xs font-medium text-slate-700 bg-slate-50 rounded-xl p-2 border border-slate-100">
+              Continue normal daily activities and stay well hydrated.
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Blood Sugar (Non-Invasive Glucose) -->
+        <div class="glass-card rounded-2xl p-4 shadow-sm border hover:border-maternal-300 transition flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-slate-500 mb-1">
+              <span class="text-xs font-bold uppercase tracking-wider">Blood Sugar</span>
+              <span class="text-xl">🩸</span>
+            </div>
+            <div class="flex items-baseline space-x-1.5 my-1">
+              <span id="valGlucose" class="text-2xl sm:text-3xl font-extrabold font-heading text-slate-900">100.0</span>
+              <span class="text-xs text-slate-500 font-medium">mg/dL</span>
+            </div>
+            <div class="mt-1">
+              <span id="badgeGlucose" class="inline-block px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700">
+                Optimal Target
+              </span>
+            </div>
+            <p id="descGlucose" class="text-xs text-slate-600 mt-2 leading-snug">
+              Estimated glucose is within standard target range for pregnancy.
+            </p>
+          </div>
+          <div class="mt-3 pt-2.5 border-t border-slate-100">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">What to do next</span>
+            <div id="actionGlucose" class="text-xs font-medium text-slate-700 bg-slate-50 rounded-xl p-2 border border-slate-100">
+              Continue balanced meals pairing proteins, fiber, and whole foods.
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Heart Rate & Oxygen (PPG Optical) -->
+        <div class="glass-card rounded-2xl p-4 shadow-sm border hover:border-maternal-300 transition flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-slate-500 mb-1">
+              <span class="text-xs font-bold uppercase tracking-wider">Heart Rhythm &amp; SpO2</span>
+              <span class="text-xl text-rose-500 pulse-animation">❤️</span>
+            </div>
+            <div class="flex items-baseline space-x-3 my-1">
+              <div>
+                <span id="valHR" class="text-2xl sm:text-3xl font-extrabold font-heading text-slate-900">74</span>
+                <span class="text-xs text-slate-500 font-medium">BPM</span>
+              </div>
+              <div class="text-slate-300 font-light">|</div>
+              <div>
+                <span id="valSpO2" class="text-xl sm:text-2xl font-bold font-heading text-slate-800">98%</span>
+                <span class="text-[10px] text-slate-500 font-medium">SpO2</span>
+              </div>
+            </div>
+            <div class="mt-1">
+              <span id="badgeHR" class="inline-block px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700">
+                Normal Rhythm
+              </span>
+            </div>
+            <p id="descHR" class="text-xs text-slate-600 mt-2 leading-snug">
+              Your cardiovascular rhythm is stable.
+            </p>
+          </div>
+          <div class="mt-3 pt-2.5 border-t border-slate-100">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">What to do next</span>
+            <div id="actionHR" class="text-xs font-medium text-slate-700 bg-slate-50 rounded-xl p-2 border border-slate-100">
+              Rhythm is steady. Take 5 minutes to relax if you've been rushing.
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: Movement, Sleep & Ergonomics -->
+        <div class="glass-card rounded-2xl p-4 shadow-sm border hover:border-maternal-300 transition flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-slate-500 mb-1">
+              <span class="text-xs font-bold uppercase tracking-wider">Posture &amp; Rest</span>
+              <span class="text-xl">🌙</span>
+            </div>
+            <div class="my-1">
+              <span id="valPosture" class="text-xl sm:text-2xl font-extrabold font-heading text-slate-900">Safe Lateral</span>
+              <span id="valActivityTag" class="block text-xs text-slate-500">Resting</span>
+            </div>
+            <div class="mt-1">
+              <span id="badgePosture" class="inline-block px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700">
+                Optimal Circulation
+              </span>
+            </div>
+            <p id="descPosture" class="text-xs text-slate-600 mt-2 leading-snug">
+              Comfortable lateral positioning supports maternal and fetal blood flow.
+            </p>
+          </div>
+          <div class="mt-3 pt-2.5 border-t border-slate-100">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">What to do next</span>
+            <div id="actionPosture" class="text-xs font-medium text-slate-700 bg-slate-50 rounded-xl p-2 border border-slate-100">
+              Keep a firm pillow behind your back and between your knees for comfort.
             </div>
           </div>
         </div>
@@ -284,108 +331,83 @@
       </div>
     </section>
 
-    <!-- Real-time Chart Section -->
+    <!-- 5. Real-time Live Signal Waveform -->
     <section class="glass-card rounded-2xl p-4 shadow-sm border">
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 flex items-center space-x-1.5">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500 flex items-center space-x-1.5">
           <span>📈</span>
-          <span>Live Hemodynamic Waveform</span>
+          <span>Live Hemodynamic Telemetry Trend</span>
         </h2>
         <span class="text-xs text-slate-400">Glucose (mg/dL) &amp; Heart Rate (BPM)</span>
       </div>
-      <div class="w-full h-48 sm:h-56">
+      <div class="w-full h-44 sm:h-52">
         <canvas id="vitalsChart"></canvas>
       </div>
     </section>
 
-    <!-- Gemini AI Maternal Health Report Section -->
-    <section class="glass-card rounded-3xl p-5 sm:p-6 shadow-md border border-rose-200/80 relative overflow-hidden bg-gradient-to-b from-white to-rose-50/30">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-rose-100">
+    <!-- 6. Gemini Maternal Companion & Guidance -->
+    <section class="glass-card rounded-3xl p-5 sm:p-6 shadow-md border border-rose-200/80 bg-gradient-to-b from-white to-rose-50/30">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-rose-100">
         <div>
           <div class="flex items-center space-x-2">
             <span class="text-2xl">✨</span>
-            <h2 class="text-xl font-bold font-heading text-slate-900">Gemini Care Companion</h2>
+            <h2 class="text-lg sm:text-xl font-bold font-heading text-slate-900">Gemini Care Companion</h2>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 mt-1">
-            Empathetic, clear, and reassuring explanation of your condition written directly for you.
+          <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Guideline-grounded empathetic translation written directly for you.
           </p>
         </div>
 
-        <div class="flex items-center space-x-2 self-start sm:self-auto">
-          <button id="btnGenerateReport" onclick="generateReport()" class="px-4 py-2.5 bg-gradient-to-r from-maternal-500 to-rose-600 hover:from-maternal-600 hover:to-rose-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-rose-200 transition flex items-center space-x-2 active:scale-95">
-            <span id="reportSpinner" class="hidden animate-spin">⏳</span>
-            <span>Generate Health Report</span>
-          </button>
-        </div>
+        <button id="btnGenerateReport" onclick="generateReport()" class="self-start sm:self-auto px-4 py-2.5 bg-gradient-to-r from-maternal-500 to-rose-600 hover:from-maternal-600 hover:to-rose-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-rose-200 transition flex items-center space-x-2 active:scale-95">
+          <span id="reportSpinner" class="hidden animate-spin">⏳</span>
+          <span>Generate Health Report</span>
+        </button>
       </div>
 
-      <!-- Report Metadata Header -->
-      <div id="reportMeta" class="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 pb-2">
+      <div id="reportMeta" class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 pb-2">
         <span id="reportEngineBadge" class="inline-flex items-center px-2.5 py-1 rounded-full bg-rose-50 text-maternal-700 border border-rose-200 font-medium">
           ACOG Clinical Knowledge Engine
         </span>
         <span id="reportTimestamp" class="font-mono text-slate-400">Click generate to synthesize fresh guidance</span>
       </div>
 
-      <!-- Report Content Cards -->
-      <div id="reportContainer" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-
+      <div id="reportContainer" class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3.5">
         <!-- Card 1: How You & Baby Are Doing -->
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div>
-            <div class="flex items-center space-x-2 text-maternal-600 font-bold text-sm mb-2">
-              <span>💖</span>
-              <h4>How You &amp; Baby Are Doing</h4>
-            </div>
-            <div id="repSummary" class="text-xs sm:text-sm text-slate-700 leading-relaxed space-y-2">
-              Your vital signs are actively streaming. Tap "Generate Health Report" above to synthesize a personalized, comforting maternal breakdown.
-            </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <div class="flex items-center space-x-2 text-maternal-600 font-bold text-sm mb-2">
+            <span>💖</span>
+            <h4>How You &amp; Baby Are Doing</h4>
+          </div>
+          <div id="repSummary" class="text-xs sm:text-sm text-slate-700 leading-relaxed space-y-2">
+            Your vital signs are streaming steadily. Tap "Generate Health Report" above to synthesize a personalized, comforting maternal breakdown.
           </div>
         </div>
 
         <!-- Card 2: Nourishment & Blood Sugar -->
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div>
-            <div class="flex items-center space-x-2 text-emerald-700 font-bold text-sm mb-2">
-              <span>🥗</span>
-              <h4>Nourishment &amp; Blood Sugar</h4>
-            </div>
-            <div id="repDiet" class="text-xs sm:text-sm text-slate-700 leading-relaxed space-y-2">
-              Personalized glycemic advice based on your current glucose levels and postprandial status will appear here.
-            </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <div class="flex items-center space-x-2 text-emerald-700 font-bold text-sm mb-2">
+            <span>🥗</span>
+            <h4>Nourishment &amp; Blood Sugar</h4>
+          </div>
+          <div id="repDiet" class="text-xs sm:text-sm text-slate-700 leading-relaxed space-y-2">
+            Personalized glycemic advice based on your current glucose reading will appear here.
           </div>
         </div>
 
         <!-- Card 3: Rest, Sleep & Posture -->
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div>
-            <div class="flex items-center space-x-2 text-indigo-700 font-bold text-sm mb-2">
-              <span>🌙</span>
-              <h4>Rest, Sleep &amp; Posture Coaching</h4>
-            </div>
-            <div id="repSleep" class="text-xs sm:text-sm text-slate-700 leading-relaxed space-y-2">
-              Ergonomic left-lateral sleeping and restlessness mitigation guidance tailored to your trimester.
-            </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <div class="flex items-center space-x-2 text-indigo-700 font-bold text-sm mb-2">
+            <span>🌙</span>
+            <h4>Rest &amp; Posture Coaching</h4>
+          </div>
+          <div id="repSleep" class="text-xs sm:text-sm text-slate-700 leading-relaxed space-y-2">
+            Left-lateral sleeping and posture guidance tailored to your trimester.
           </div>
         </div>
-
-        <!-- Card 4: Daily Movement & Energy -->
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div>
-            <div class="flex items-center space-x-2 text-amber-700 font-bold text-sm mb-2">
-              <span>🏃</span>
-              <h4>Movement &amp; Safe Energy</h4>
-            </div>
-            <div id="repActivity" class="text-xs sm:text-sm text-slate-700 leading-relaxed space-y-2">
-              ACOG-certified exercise thresholds, walking pace targets, and exertion limits.
-            </div>
-          </div>
-        </div>
-
       </div>
 
       <!-- SBAR Doctor Note Section -->
-      <div class="mt-5 bg-slate-900 text-slate-100 rounded-2xl p-4 sm:p-5 shadow-sm">
+      <div class="mt-4 bg-slate-900 text-slate-100 rounded-2xl p-4 sm:p-5 shadow-sm">
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center space-x-2">
             <span class="text-lg">🩺</span>
@@ -396,11 +418,10 @@
             <span id="copyText">Copy for Doctor</span>
           </button>
         </div>
-        <pre id="repSbar" class="text-xs text-slate-300 font-mono whitespace-pre-wrap leading-relaxed bg-slate-950/60 p-3 rounded-xl border border-slate-800 mt-2 max-h-48 overflow-y-auto">
-Generate a report to create the standardized Situation, Background, Assessment, and Recommendation (SBAR) clinical progress note for your obstetrician.
+        <pre id="repSbar" class="text-xs text-slate-300 font-mono whitespace-pre-wrap leading-relaxed bg-slate-950/60 p-3 rounded-xl border border-slate-800 mt-2 max-h-44 overflow-y-auto">
+Standardized Situation, Background, Assessment, and Recommendation (SBAR) clinical progress note for your obstetrician will appear here.
         </pre>
       </div>
-
     </section>
 
   </main>
@@ -416,7 +437,7 @@ Generate a report to create the standardized Situation, Background, Assessment, 
         <button onclick="closeModal('profileModal')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
       </div>
 
-      <div class="space-y-3.5 text-xs">
+      <div class="space-y-3 text-xs">
         <div>
           <label class="block font-semibold text-slate-700 mb-1">Mother's Name</label>
           <input type="text" id="profName" value="Priya S." class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-maternal-500">
@@ -455,7 +476,7 @@ Generate a report to create the standardized Situation, Background, Assessment, 
         </div>
 
         <div>
-          <label class="block font-semibold text-slate-700 mb-1">Known Pre-existing Risks</label>
+          <label class="block font-semibold text-slate-700 mb-1">Known Pre-existing Conditions</label>
           <input type="text" id="profConditions" value="Gestational Diabetes Risk" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-maternal-500">
         </div>
       </div>
@@ -467,62 +488,25 @@ Generate a report to create the standardized Situation, Background, Assessment, 
     </div>
   </div>
 
-  <!-- Sensor Source & Simulator Modal -->
+  <!-- Source & Scenario Modal -->
   <div id="sourceModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-xl border border-slate-100">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-bold font-heading text-slate-900 flex items-center space-x-2">
           <span>🎛️</span>
-          <span>Sensor Ingestion &amp; Simulation</span>
+          <span>Sensor Connection &amp; Rehearsal</span>
         </h3>
         <button onclick="closeModal('sourceModal')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
       </div>
 
       <div class="space-y-4 text-xs">
-
-        <!-- Simulator Scenarios -->
-        <div class="bg-rose-50/50 p-4 rounded-2xl border border-rose-100">
-          <div class="flex items-center justify-between mb-2">
-            <span class="font-bold text-slate-900">Physiological Scenario Simulator</span>
-            <span class="text-[11px] text-maternal-600 font-semibold">Instant Hardware-Free Testing</span>
-          </div>
-          <p class="text-slate-500 mb-3">Select a maternal state to immediately test how the AI models classify conditions:</p>
-          
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <button onclick="setScenario('normal_resting')" class="scenario-btn p-2.5 rounded-xl border text-left transition hover:border-maternal-400 bg-white" data-scenario="normal_resting">
-              <div class="font-bold text-slate-800">🌸 Healthy Rest &amp; Sleep</div>
-              <div class="text-[10px] text-slate-500">Normal glucose, safe lateral posture</div>
-            </button>
-
-            <button onclick="setScenario('postprandial_hyperglycemia')" class="scenario-btn p-2.5 rounded-xl border text-left transition hover:border-maternal-400 bg-white" data-scenario="postprandial_hyperglycemia">
-              <div class="font-bold text-slate-800">🥪 High Glucose Surge</div>
-              <div class="text-[10px] text-slate-500">Post-meal elevation (>145 mg/dL)</div>
-            </button>
-
-            <button onclick="setScenario('supine_sleep_alert')" class="scenario-btn p-2.5 rounded-xl border text-left transition hover:border-maternal-400 bg-white" data-scenario="supine_sleep_alert">
-              <div class="font-bold text-red-600">🚨 Supine Back-Sleeping</div>
-              <div class="text-[10px] text-slate-500">Triggers vena cava compression alarm</div>
-            </button>
-
-            <button onclick="setScenario('overexertion_high_hr')" class="scenario-btn p-2.5 rounded-xl border text-left transition hover:border-maternal-400 bg-white" data-scenario="overexertion_high_hr">
-              <div class="font-bold text-amber-600">🏃 High Overexertion</div>
-              <div class="text-[10px] text-slate-500">HR >135 bpm, high kinematic impact</div>
-            </button>
-
-            <button onclick="setScenario('gestational_hypertension')" class="scenario-btn p-2.5 rounded-xl border text-left transition hover:border-maternal-400 bg-white sm:col-span-2" data-scenario="gestational_hypertension">
-              <div class="font-bold text-indigo-700">🩺 Gestational Hypertensive Spike</div>
-              <div class="text-[10px] text-slate-500">Blood pressure 148/96 mmHg with resting tachycardia</div>
-            </button>
-          </div>
-        </div>
-
-        <!-- Physical ESP32 Serial Port -->
+        <!-- Physical USB ESP32 -->
         <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-          <span class="font-bold text-slate-900 block mb-1">Live Physical ESP32 (USB Serial)</span>
-          <p class="text-slate-500 mb-2">Plug your ESP32 into USB and select the serial port:</p>
+          <span class="font-bold text-slate-900 block mb-1">Live Physical ESP32 (USB 100Hz Streamer)</span>
+          <p class="text-slate-500 mb-2">Plug in your ESP32 running the USB telemetry firmware:</p>
           <div class="flex items-center space-x-2">
             <select id="serialPortSelect" class="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none">
-              <option value="">Searching for ports...</option>
+              <option value="">Searching for USB ports...</option>
             </select>
             <button onclick="connectSerial()" class="px-4 py-2 bg-slate-800 text-white rounded-xl font-semibold hover:bg-slate-700">
               Connect
@@ -530,15 +514,44 @@ Generate a report to create the standardized Situation, Background, Assessment, 
           </div>
         </div>
 
-        <!-- ESP32 Direct Wi-Fi Webhook -->
-        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-          <span class="font-bold text-slate-900 block mb-1">Direct Wi-Fi Cloud Webhook</span>
-          <p class="text-slate-500 mb-1">Your ESP32 can send HTTP POST packets directly over home Wi-Fi:</p>
-          <code id="webhookUrl" class="block p-2 bg-slate-900 text-rose-300 rounded-lg font-mono text-[11px] select-all">
-            http://YOUR_SERVER_IP:8080/api/telemetry
-          </code>
-        </div>
+        <!-- Simulation Scenarios -->
+        <div class="bg-rose-50/50 p-4 rounded-2xl border border-rose-100">
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-bold text-slate-900">Demo Rehearsal Scenarios</span>
+            <span class="text-[11px] text-maternal-600 font-semibold">Instant Fallback</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button onclick="setScenario('normal_resting')" class="scenario-btn p-2.5 rounded-xl border text-left transition hover:border-maternal-400 bg-white" data-scenario="normal_resting">
+              <div class="font-bold text-slate-800">🌸 Healthy Rest &amp; Sleep</div>
+              <div class="text-[10px] text-slate-500">Normal glucose, safe lateral posture</div>
+            </button>
 
+            <button onclick="setScenario('postprandial_hyperglycemia')" class="scenario-btn p-2.5 rounded-xl border text-left transition hover:border-maternal-400 bg-white" data-scenario="postprandial_hyperglycemia">
+              <div class="font-bold text-slate-800">🥪 Elevated Blood Sugar</div>
+              <div class="text-[10px] text-slate-500">Post-meal surge (~148 mg/dL)</div>
+            </button>
+
+            <button onclick="setScenario('supine_sleep_alert')" class="scenario-btn p-2.5 rounded-xl border text-left transition hover:border-maternal-400 bg-white" data-scenario="supine_sleep_alert">
+              <div class="font-bold text-red-600">🚨 Supine Back-Sleeping</div>
+              <div class="text-[10px] text-slate-500">Flat on back vena cava alarm</div>
+            </button>
+
+            <button onclick="setScenario('gestational_hypertension')" class="scenario-btn p-2.5 rounded-xl border text-left transition hover:border-maternal-400 bg-white" data-scenario="gestational_hypertension">
+              <div class="font-bold text-amber-600">🩺 Stage 1 Hypertension</div>
+              <div class="text-[10px] text-slate-500">BP 148/94 mmHg (ACOG Check)</div>
+            </button>
+
+            <button onclick="setScenario('severe_hypertension')" class="scenario-btn p-2.5 rounded-xl border text-left transition hover:border-maternal-400 bg-white" data-scenario="severe_hypertension">
+              <div class="font-bold text-red-700">🚨 Severe Hypertension (164/112)</div>
+              <div class="text-[10px] text-slate-500">ACOG Urgent Emergency Care</div>
+            </button>
+
+            <button onclick="setScenario('overexertion_high_hr')" class="scenario-btn p-2.5 rounded-xl border text-left transition hover:border-maternal-400 bg-white" data-scenario="overexertion_high_hr">
+              <div class="font-bold text-indigo-700">🏃 High Overexertion</div>
+              <div class="text-[10px] text-slate-500">HR >135 BPM with high impact</div>
+            </button>
+          </div>
+        </div>
       </div>
 
       <div class="mt-5 flex justify-end">
@@ -547,37 +560,34 @@ Generate a report to create the standardized Situation, Background, Assessment, 
     </div>
   </div>
 
-  <!-- Gemini API Key Modal -->
+  <!-- API Key Modal -->
   <div id="apiKeyModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-xl border border-slate-100">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-bold font-heading text-slate-900 flex items-center space-x-2">
           <span>✨</span>
-          <span>Google Gemini API Configuration</span>
+          <span>Google Gemini API Settings</span>
         </h3>
         <button onclick="closeModal('apiKeyModal')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
       </div>
 
       <div class="space-y-3 text-xs">
         <p class="text-slate-600">
-          Provide your Google Gemini API key to enable warm, conversational generative synthesis:
+          Enter your Gemini API key to enable warm, empathetic rephrasing:
         </p>
-
         <div>
           <label class="block font-semibold text-slate-700 mb-1">Gemini API Key</label>
           <input type="password" id="geminiApiKeyInput" placeholder="AIzaSy..." class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-maternal-500 font-mono">
         </div>
-
         <div>
           <label class="block font-semibold text-slate-700 mb-1">Model Version</label>
           <select id="geminiModelSelect" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-maternal-500">
-            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recommended - Fastest &amp; Empathetic)</option>
+            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recommended)</option>
             <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
           </select>
         </div>
-
-        <div class="p-3 rounded-xl bg-amber-50 text-amber-800 text-[11px] border border-amber-200">
-          💡 <strong>No API key?</strong> No problem! The built-in <strong>ACOG Clinical Knowledge Engine</strong> runs 100% offline and generates medically certified maternal guidance automatically.
+        <div class="p-3 rounded-xl bg-emerald-50 text-emerald-800 text-[11px] border border-emerald-200">
+          💡 <strong>Offline Certified:</strong> The built-in <strong>ACOG/NICE Clinical Rule Engine</strong> operates 100% offline even without any API key or internet access.
         </div>
       </div>
 
@@ -588,29 +598,18 @@ Generate a report to create the standardized Situation, Background, Assessment, 
     </div>
   </div>
 
-  <!-- PWA Service Worker Registration & App Logic -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js').catch(err => console.log('SW failed', err));
     }
 
-    // Modal helpers
     function openModal(id) {
       const el = document.getElementById(id);
-      if (el) {
-        el.classList.remove('hidden');
-        el.classList.add('flex');
-      }
+      if (el) { el.classList.remove('hidden'); el.classList.add('flex'); }
     }
     function closeModal(id) {
       const el = document.getElementById(id);
-      if (el) {
-        el.classList.remove('flex');
-        el.classList.add('hidden');
-      }
-    }
-    function dismissAlert(id) {
-      document.getElementById(id).classList.add('hidden');
+      if (el) { el.classList.remove('flex'); el.classList.add('hidden'); }
     }
 
     // Chart.js Setup
@@ -645,45 +644,80 @@ Generate a report to create the standardized Situation, Background, Assessment, 
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: { duration: 400 },
+        animation: { duration: 300 },
         scales: {
-          x: {
-            grid: { display: false },
-            ticks: { font: { size: 10 } }
-          },
-          yGluc: {
-            type: 'linear',
-            position: 'left',
-            min: 50,
-            max: 200,
-            title: { display: true, text: 'Glucose', font: { size: 10 } },
-            ticks: { font: { size: 10 } }
-          },
-          yHR: {
-            type: 'linear',
-            position: 'right',
-            min: 40,
-            max: 160,
-            grid: { drawOnChartArea: false },
-            title: { display: true, text: 'Heart Rate', font: { size: 10 } },
-            ticks: { font: { size: 10 } }
-          }
+          x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+          yGluc: { type: 'linear', position: 'left', min: 50, max: 200, title: { display: true, text: 'Glucose', font: { size: 10 } }, ticks: { font: { size: 10 } } },
+          yHR: { type: 'linear', position: 'right', min: 40, max: 160, grid: { drawOnChartArea: false }, title: { display: true, text: 'Heart Rate', font: { size: 10 } }, ticks: { font: { size: 10 } } }
         },
         plugins: {
-          legend: {
-            position: 'top',
-            labels: { font: { size: 11 }, boxWidth: 12 }
-          }
+          legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 12 } }
         }
       }
     });
 
-    // Real-Time Telemetry via Server-Sent Events (SSE)
+    // Active Red-Flag Symptoms State
+    let activeSymptoms = [];
+
+    async function toggleSymptom(symId) {
+      const idx = activeSymptoms.indexOf(symId);
+      if (idx > -1) {
+        activeSymptoms.splice(idx, 1);
+      } else {
+        activeSymptoms.push(symId);
+      }
+      syncSymptomChipsUI();
+      await syncSymptomsToServer();
+    }
+
+    async function clearAllSymptoms() {
+      activeSymptoms = [];
+      syncSymptomChipsUI();
+      await syncSymptomsToServer();
+    }
+
+    function syncSymptomChipsUI() {
+      const chipIds = ['severe_headache', 'visual_disturbances', 'epigastric_pain', 'shortness_of_breath', 'sudden_swelling', 'decreased_fetal_movement'];
+      chipIds.forEach(id => {
+        const btn = document.getElementById('sym_' + id);
+        if (!btn) return;
+        if (activeSymptoms.includes(id)) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      const alertBox = document.getElementById('symptomsActiveAlert');
+      if (alertBox) {
+        if (activeSymptoms.length > 0) {
+          alertBox.classList.remove('hidden');
+        } else {
+          alertBox.classList.add('hidden');
+        }
+      }
+    }
+
+    async function syncSymptomsToServer() {
+      try {
+        const res = await fetch('/api/symptoms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symptoms: activeSymptoms })
+        });
+        const json = await res.json();
+        if (json.latest) {
+          updateDashboard(json.latest);
+        }
+      } catch (err) {
+        console.error('Failed syncing symptoms', err);
+      }
+    }
+
+    // Real-Time SSE Setup
     let eventSource = null;
 
     function initSSE() {
       eventSource = new EventSource('/api/stream');
-
       eventSource.onmessage = function(e) {
         try {
           const data = JSON.parse(e.data);
@@ -692,7 +726,6 @@ Generate a report to create the standardized Situation, Background, Assessment, 
           console.error('SSE JSON error', err);
         }
       };
-
       eventSource.onerror = function() {
         document.getElementById('liveBadge').className = 'inline-flex items-center px-2 py-0.5 rounded-full font-medium bg-amber-50 text-amber-700 border border-amber-200 text-xs';
         document.getElementById('liveBadge').innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span> Reconnecting...';
@@ -709,130 +742,126 @@ Generate a report to create the standardized Situation, Background, Assessment, 
       document.getElementById('liveBadge').innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span> Live Telemetry';
       document.getElementById('lastUpdated').innerText = data.timestamp || new Date().toLocaleTimeString();
 
+      if (data.data_source) {
+        document.getElementById('sourceTag').innerText = data.data_source;
+      }
+
       const vitals = data.vitals || {};
       const kin = data.kinematics || {};
-      const clin = data.clinical_status || {};
+      const guidelines = data.guidelines || {};
+      const cards = guidelines.cards || {};
 
-      // 1. Glucose
-      const gluc = vitals.glucose_mg_dl || '--';
-      document.getElementById('valGlucose').innerText = gluc;
-      const bGluc = document.getElementById('badgeGlucose');
-      bGluc.innerText = vitals.glycemic_label || 'Normal';
-      if (vitals.glycemic_risk_tier === 2) {
-        bGluc.className = 'inline-block px-2 py-0.5 text-[11px] font-semibold rounded-lg bg-rose-100 text-rose-800';
-      } else if (vitals.glycemic_risk_tier === 1) {
-        bGluc.className = 'inline-block px-2 py-0.5 text-[11px] font-semibold rounded-lg bg-amber-100 text-amber-800';
+      // 1. Primary Guideline Alert Banner
+      const banner = document.getElementById('mainGuidelineBanner');
+      const bannerTierBadge = document.getElementById('bannerTierBadge');
+      const bannerHeadline = document.getElementById('bannerHeadline');
+      const bannerAction = document.getElementById('bannerAction');
+      const bannerIcon = document.getElementById('bannerIcon');
+
+      bannerTierBadge.innerText = guidelines.overall_badge || 'ALL NORMAL';
+      bannerHeadline.innerText = guidelines.headline || 'All Vitals in Healthy Harmony';
+      bannerAction.innerText = guidelines.primary_action || 'Continue normal activities and stay well hydrated.';
+
+      if (guidelines.overall_color === 'red') {
+        banner.className = 'rounded-2xl p-4 text-white shadow-md transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-red-600 animate-pulse';
+        bannerIcon.innerText = '🚨';
+      } else if (guidelines.overall_color === 'amber') {
+        banner.className = 'rounded-2xl p-4 text-white shadow-md transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-600';
+        bannerIcon.innerText = '⚠️';
       } else {
-        bGluc.className = 'inline-block px-2 py-0.5 text-[11px] font-semibold rounded-lg bg-emerald-50 text-emerald-700';
+        banner.className = 'rounded-2xl p-4 text-white shadow-md transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-emerald-600';
+        bannerIcon.innerText = '💖';
       }
 
-      // 2. Heart Rate
-      const hr = vitals.heart_rate_bpm || '--';
-      document.getElementById('valHR').innerText = hr;
-      const bHR = document.getElementById('badgeHR');
-      if (hr > 115) {
-        bHR.className = 'inline-block px-2 py-0.5 text-[11px] font-semibold rounded-lg bg-rose-100 text-rose-800';
-        bHR.innerText = 'Tachycardia Alert';
-      } else if (hr < 55) {
-        bHR.className = 'inline-block px-2 py-0.5 text-[11px] font-semibold rounded-lg bg-amber-100 text-amber-800';
-        bHR.innerText = 'Bradycardia Check';
-      } else {
-        bHR.className = 'inline-block px-2 py-0.5 text-[11px] font-semibold rounded-lg bg-emerald-50 text-emerald-700';
-        bHR.innerText = 'Normal Rhythm';
-      }
-
-      // 3. Blood Pressure
+      // 2. Blood Pressure Card
+      const bpCard = cards.blood_pressure || {};
       document.getElementById('valBP').innerText = vitals.blood_pressure || '--/--';
       const bBP = document.getElementById('badgeBP');
-      bBP.innerText = vitals.htn_status || 'Normotensive';
-      if ((vitals.sbp_mmhg >= 140) || (vitals.dbp_mmhg >= 90)) {
-        bBP.className = 'inline-block px-2 py-0.5 text-[11px] font-semibold rounded-lg bg-rose-100 text-rose-800';
+      bBP.innerText = bpCard.status || vitals.htn_status || 'Normotensive';
+      document.getElementById('descBP').innerText = bpCard.summary || 'Blood pressure within standard prenatal target.';
+      document.getElementById('actionBP').innerText = bpCard.action || 'Continue normal daily activities and stay well hydrated.';
+
+      if (bpCard.color === 'red') {
+        bBP.className = 'inline-block px-2.5 py-0.5 text-xs font-bold rounded-full bg-red-100 text-red-800';
+      } else if (bpCard.color === 'amber') {
+        bBP.className = 'inline-block px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-100 text-amber-800';
       } else {
-        bBP.className = 'inline-block px-2 py-0.5 text-[11px] font-semibold rounded-lg bg-emerald-50 text-emerald-700';
+        bBP.className = 'inline-block px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700';
       }
 
-      // 4. SpO2
-      document.getElementById('valSpO2').innerText = vitals.spo2_pct || '--';
+      // 3. Glucose Card
+      const glucCard = cards.glucose || {};
+      const glucVal = vitals.glucose_mg_dl || '--';
+      document.getElementById('valGlucose').innerText = glucVal;
+      const bGluc = document.getElementById('badgeGlucose');
+      bGluc.innerText = glucCard.status || vitals.glycemic_label || 'Normal';
+      document.getElementById('descGlucose').innerText = glucCard.summary || 'Estimated glucose in healthy range.';
+      document.getElementById('actionGlucose').innerText = glucCard.action || 'Maintain balanced meals.';
 
-      // 5. Kinematics & Movement
-      document.getElementById('valActivity').innerText = kin.activity_label || 'Sedentary';
-      document.getElementById('valVM').innerText = (kin.vm_mean_g || 1.0) + 'g';
-      const bAct = document.getElementById('badgeActivity');
-      if (kin.activity_code === 3) {
-        bAct.className = 'inline-block px-2 py-0.5 text-[11px] font-semibold rounded-lg bg-red-100 text-red-800 font-bold';
-        bAct.innerText = 'Overexertion';
+      if (glucCard.color === 'red') {
+        bGluc.className = 'inline-block px-2.5 py-0.5 text-xs font-bold rounded-full bg-red-100 text-red-800';
+      } else if (glucCard.color === 'amber') {
+        bGluc.className = 'inline-block px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-100 text-amber-800';
       } else {
-        bAct.className = 'inline-block px-2 py-0.5 text-[11px] font-semibold rounded-lg bg-slate-100 text-slate-700';
-        bAct.innerText = kin.activity_label;
+        bGluc.className = 'inline-block px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700';
       }
 
-      // 6. Sleep & Posture
-      document.getElementById('valSleep').innerText = kin.is_recumbent ? kin.sleep_label : 'Awake';
-      document.getElementById('valPitch').innerText = (kin.pitch_deg || 0) + '°';
-      document.getElementById('valRoll').innerText = (kin.roll_deg || 0) + '°';
+      // 4. Heart Rate & SpO2 Card
+      const hrCard = cards.heart_rate || {};
+      document.getElementById('valHR').innerText = vitals.heart_rate_bpm || '--';
+      document.getElementById('valSpO2').innerText = (vitals.spo2_pct ? vitals.spo2_pct + '%' : '98%');
+      const bHR = document.getElementById('badgeHR');
+      bHR.innerText = hrCard.status || 'Normal Rhythm';
+      document.getElementById('descHR').innerText = hrCard.summary || 'Your cardiovascular rhythm is stable.';
+      document.getElementById('actionHR').innerText = hrCard.action || 'Rhythm is steady.';
 
-      const bSleep = document.getElementById('badgeSleepPosture');
-      const supineBanner = document.getElementById('supineAlertBanner');
-
-      if (kin.supine_alert) {
-        bSleep.className = 'inline-block px-2 py-0.5 text-[11px] font-semibold rounded-lg bg-red-100 text-red-800 font-bold';
-        bSleep.innerText = '⚠️ Flat on Back (Supine)';
-        supineBanner.classList.remove('hidden');
+      if (hrCard.color === 'red') {
+        bHR.className = 'inline-block px-2.5 py-0.5 text-xs font-bold rounded-full bg-red-100 text-red-800';
+      } else if (hrCard.color === 'amber') {
+        bHR.className = 'inline-block px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-100 text-amber-800';
       } else {
-        bSleep.className = 'inline-block px-2 py-0.5 text-[11px] font-semibold rounded-lg bg-emerald-50 text-emerald-700';
-        bSleep.innerText = 'Safe Lateral Posture';
-        supineBanner.classList.add('hidden');
+        bHR.className = 'inline-block px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700';
       }
 
-      // 7. Anomaly Detector
-      const anomStatus = document.getElementById('valAnomalyStatus');
-      const anomBadge = document.getElementById('badgeAnomaly');
-      if (clin.is_biometric_anomaly) {
-        anomStatus.innerText = 'Acute Deviant Pattern Flagged';
-        anomStatus.className = 'text-sm font-bold text-amber-600';
-        anomBadge.className = 'w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm';
-        anomBadge.innerText = '!';
+      // 5. Posture & Kinematics Card
+      const kinCard = cards.kinematics || {};
+      const postureText = kin.supine_alert ? '🚨 Flat on Back!' : (kin.is_recumbent ? 'Safe Lateral Tilt' : 'Active Upright');
+      document.getElementById('valPosture').innerText = postureText;
+      document.getElementById('valActivityTag').innerText = kin.activity_label || 'Sedentary';
+      const bPosture = document.getElementById('badgePosture');
+      bPosture.innerText = kinCard.status || 'Optimal Circulation';
+      document.getElementById('descPosture').innerText = kinCard.summary || 'Comfortable posture detected.';
+      document.getElementById('actionPosture').innerText = kinCard.action || 'Rest safely on left side.';
+
+      if (kinCard.color === 'red' || kin.supine_alert) {
+        bPosture.className = 'inline-block px-2.5 py-0.5 text-xs font-bold rounded-full bg-red-100 text-red-800 animate-bounce';
+      } else if (kinCard.color === 'amber') {
+        bPosture.className = 'inline-block px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-100 text-amber-800';
       } else {
-        anomStatus.innerText = 'Stable Maternal Pattern';
-        anomStatus.className = 'text-sm font-bold text-emerald-700';
-        anomBadge.className = 'w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm';
-        anomBadge.innerText = '✓';
+        bPosture.className = 'inline-block px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700';
       }
 
-      // 8. General Risk Banner
-      const riskBanner = document.getElementById('clinicalRiskBanner');
-      const riskBadge = document.getElementById('riskTierBadge');
-      const riskText = document.getElementById('riskBannerText');
-      if (clin.overall_risk_level === 'CRITICAL' || clin.overall_risk_level === 'HIGH') {
-        riskBanner.classList.remove('hidden');
-        riskBanner.className = 'rounded-2xl p-4 text-sm font-medium transition flex items-center justify-between bg-rose-50 border border-rose-200 text-rose-900';
-        riskBadge.className = 'text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider bg-rose-600 text-white';
-        riskBadge.innerText = clin.overall_risk_level;
-        riskText.innerText = (clin.risk_flags && clin.risk_flags.length) ? clin.risk_flags.join(' • ') : 'Clinical attention suggested';
-      } else {
-        riskBanner.classList.add('hidden');
+      // 6. Push to Chart
+      if (vitals.glucose_mg_dl && vitals.heart_rate_bpm) {
+        const timeLabel = data.timestamp || new Date().toLocaleTimeString();
+        if (vitalsChart.data.labels.length > 20) {
+          vitalsChart.data.labels.shift();
+          vitalsChart.data.datasets[0].data.shift();
+          vitalsChart.data.datasets[1].data.shift();
+        }
+        vitalsChart.data.labels.push(timeLabel);
+        vitalsChart.data.datasets[0].data.push(vitals.glucose_mg_dl);
+        vitalsChart.data.datasets[1].data.push(vitals.heart_rate_bpm);
+        vitalsChart.update('none');
       }
-
-      // 9. Update Chart
-      const timeStr = data.timestamp || new Date().toLocaleTimeString();
-      vitalsChart.data.labels.push(timeStr);
-      vitalsChart.data.datasets[0].data.push(vitals.glucose_mg_dl || null);
-      vitalsChart.data.datasets[1].data.push(vitals.heart_rate_bpm || null);
-
-      if (vitalsChart.data.labels.length > 25) {
-        vitalsChart.data.labels.shift();
-        vitalsChart.data.datasets[0].data.shift();
-        vitalsChart.data.datasets[1].data.shift();
-      }
-      vitalsChart.update('none');
     }
 
-    // Generate Maternal Health Report (Gemini API or ACOG Engine)
+    // Report Generation
     async function generateReport() {
-      const btn = document.getElementById('btnGenerateReport');
       const spinner = document.getElementById('reportSpinner');
-      btn.disabled = true;
+      const btn = document.getElementById('btnGenerateReport');
       spinner.classList.remove('hidden');
+      btn.disabled = true;
 
       try {
         const apiKey = localStorage.getItem('gemini_api_key') || '';
@@ -841,71 +870,54 @@ Generate a report to create the standardized Situation, Background, Assessment, 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ gemini_api_key: apiKey })
         });
-        
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || `Server returned HTTP ${res.status}`);
-        }
-        
         const json = await res.json();
-
         if (json.success && json.report) {
           const r = json.report;
-          document.getElementById('reportEngineBadge').innerText = r.engine_source || 'ACOG Clinical Engine';
-          document.getElementById('reportTimestamp').innerText = 'Generated at ' + new Date().toLocaleTimeString();
-
-          document.getElementById('repSummary').innerText = r.condition_summary || r.full_text;
-          document.getElementById('repDiet').innerText = r.nutrition_guidance || 'Maintaining balanced complex carbohydrate nutrition.';
-          document.getElementById('repSleep').innerText = r.sleep_guidance || 'Maintain ergonomic left-lateral sleep position.';
-          document.getElementById('repActivity').innerText = r.activity_guidance || 'Regular gentle walking recommended.';
+          document.getElementById('reportEngineBadge').innerText = r.engine_source || 'Clinical Guideline Engine';
+          document.getElementById('reportTimestamp').innerText = 'Generated ' + new Date().toLocaleTimeString();
+          document.getElementById('repSummary').innerHTML = r.condition_summary.replace(/\n/g, '<br>');
+          document.getElementById('repDiet').innerHTML = r.nutrition_guidance.replace(/\n/g, '<br>');
+          document.getElementById('repSleep').innerHTML = r.sleep_guidance.replace(/\n/g, '<br>');
           document.getElementById('repSbar').innerText = r.doctor_sbar || '';
-        } else {
-          alert('Could not generate report: ' + (json.error || 'Unknown error'));
         }
       } catch (err) {
-        alert('Could not generate report: ' + err.message + '\n\nMake sure the server is running in your laptop terminal!');
+        alert('Report generation failed: ' + err.message);
       } finally {
-        btn.disabled = false;
         spinner.classList.add('hidden');
+        btn.disabled = false;
       }
     }
 
-    // Copy SBAR Progress Note for Doctor
     function copySbar() {
       const text = document.getElementById('repSbar').innerText;
       navigator.clipboard.writeText(text).then(() => {
-        const copyText = document.getElementById('copyText');
-        const original = copyText.innerText;
-        copyText.innerText = 'Copied!';
-        setTimeout(() => copyText.innerText = original, 2000);
+        document.getElementById('copyText').innerText = 'Copied!';
+        setTimeout(() => { document.getElementById('copyText').innerText = 'Copy for Doctor'; }, 2000);
       });
     }
 
-    // Simulator Scenario Selector
-    async function setScenario(name) {
+    // Scenarios
+    async function setScenario(scenarioName) {
       try {
-        const res = await fetch('/api/simulator', {
+        await fetch('/api/simulator', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'start', scenario: name })
+          body: JSON.stringify({ action: 'start', scenario: scenarioName })
         });
-        const json = await res.json();
-        if (json.success) {
-          document.querySelectorAll('.scenario-btn').forEach(btn => {
-            if (btn.dataset.scenario === name) {
-              btn.classList.add('border-maternal-500', 'bg-rose-50');
-            } else {
-              btn.classList.remove('border-maternal-500', 'bg-rose-50');
-            }
-          });
-          document.getElementById('sourceTag').innerText = 'Sim: ' + name;
-        }
+        document.querySelectorAll('.scenario-btn').forEach(btn => {
+          if (btn.getAttribute('data-scenario') === scenarioName) {
+            btn.classList.add('border-maternal-500', 'bg-rose-50/60');
+          } else {
+            btn.classList.remove('border-maternal-500', 'bg-rose-50/60');
+          }
+        });
+        closeModal('sourceModal');
       } catch (err) {
-        console.error(err);
+        alert('Failed setting scenario: ' + err.message);
       }
     }
 
-    // Profile Settings
+    // Profile
     async function saveProfile() {
       const profile = {
         name: document.getElementById('profName').value,
@@ -916,7 +928,6 @@ Generate a report to create the standardized Situation, Background, Assessment, 
         meal_context: document.getElementById('profMeal').value,
         conditions: document.getElementById('profConditions').value.split(',').map(s => s.trim())
       };
-
       try {
         const res = await fetch('/api/profile', {
           method: 'POST',
@@ -933,14 +944,11 @@ Generate a report to create the standardized Situation, Background, Assessment, 
       }
     }
 
-    // Gemini API Key Config
+    // API Key
     async function saveApiKey() {
       const key = document.getElementById('geminiApiKeyInput').value.trim();
       const model = document.getElementById('geminiModelSelect').value;
-
-      if (key) {
-        localStorage.setItem('gemini_api_key', key);
-      }
+      if (key) localStorage.setItem('gemini_api_key', key);
 
       try {
         await fetch('/api/config', {
@@ -948,20 +956,19 @@ Generate a report to create the standardized Situation, Background, Assessment, 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ gemini_api_key: key, gemini_model: model })
         });
-        document.getElementById('apiKeyStatus').innerText = key ? 'Gemini Active' : 'Offline Engine';
+        document.getElementById('apiKeyStatus').innerText = key ? 'Gemini Active' : 'Offline Rule Engine';
         closeModal('apiKeyModal');
       } catch (err) {
         alert('Failed saving key: ' + err.message);
       }
     }
 
-    // Serial Port Detect & Connect
+    // Initial Status
     async function loadStatus() {
       try {
         const res = await fetch('/api/status');
         const st = await res.json();
 
-        // Populate serial ports
         const portSelect = document.getElementById('serialPortSelect');
         portSelect.innerHTML = '';
         if (st.available_ports && st.available_ports.length > 0) {
@@ -979,11 +986,6 @@ Generate a report to create the standardized Situation, Background, Assessment, 
           document.getElementById('headerProfileName').innerText = `${st.maternal_profile.name} (W${st.maternal_profile.gestational_week})`;
         }
 
-        // Webhook URL
-        const host = window.location.host;
-        document.getElementById('webhookUrl').innerText = `http://${host}/api/telemetry`;
-
-        // API Key status
         const savedKey = localStorage.getItem('gemini_api_key');
         if (savedKey) {
           document.getElementById('geminiApiKeyInput').value = savedKey;
@@ -1009,7 +1011,7 @@ Generate a report to create the standardized Situation, Background, Assessment, 
         const json = await res.json();
         if (json.success) {
           alert('Connected to ESP32 on ' + port);
-          document.getElementById('sourceTag').innerText = 'ESP32: ' + port;
+          document.getElementById('sourceTag').innerText = 'ESP32 USB: ' + port;
           closeModal('sourceModal');
         } else {
           alert('Could not connect to port: ' + port);
@@ -1019,12 +1021,10 @@ Generate a report to create the standardized Situation, Background, Assessment, 
       }
     }
 
-    // Startup
     window.addEventListener('DOMContentLoaded', () => {
       initSSE();
       loadStatus();
-      // Generate initial report after 1 second
-      setTimeout(() => generateReport(), 1200);
+      setTimeout(() => generateReport(), 1000);
     });
   </script>
 </body>

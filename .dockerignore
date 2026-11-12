@@ -4,7 +4,7 @@ __pycache__
 *.pyo
 .git
 .gitignore
-results/*.png
-results/*.csv
+*.zip
+*.pptx
 data/PPGBPDatabase
 data/PPGHRDatabase

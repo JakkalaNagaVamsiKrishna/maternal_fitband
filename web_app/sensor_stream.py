@@ -1,10 +1,12 @@
 """
-Maternal Fitband — Universal Sensor Stream & Telemetry Bridge
+Maternal FitBand — Universal Sensor Stream & Telemetry Bridge
 =============================================================
 Provides:
-  1. Real-time Telemetry Ingestion from physical ESP32 (Serial / BLE / Wi-Fi HTTP)
-  2. Built-in Multi-Scenario Physiological & Kinematic Sensor Simulator
-  3. Real-time Listener Dispatch (SSE / WebSockets)
+  1. Real-time 100 Hz USB Serial Telemetry Ingestion from ESP32
+     with rolling PPG & IMU windowed feature extraction
+  2. Guideline-backed multi-scenario physiological simulator
+  3. Red-flag symptoms state management
+  4. Real-time SSE dispatch for the mother-facing dashboard
 """
 
 import time
@@ -21,16 +23,25 @@ try:
 except ImportError:
     HAS_SERIAL = False
 
+from .signal_processing import PPGSignalProcessor, MotionWindowProcessor
+from .clinical_guidelines import evaluate_guidelines, RED_FLAG_SYMPTOM_DEFINITIONS, PROTOTYPE_DISCLAIMER
+
+
 class SensorStreamManager:
     def __init__(self, ml_engine, gemini_engine):
         self.ml_engine = ml_engine
         self.gemini_engine = gemini_engine
+
+        # Signal Processing Buffers
+        self.ppg_processor = PPGSignalProcessor(sample_rate_hz=100.0, window_sec=4.0)
+        self.motion_processor = MotionWindowProcessor(sample_rate_hz=50.0, window_sec=6.0)
 
         # Active state
         self.latest_raw: Dict[str, Any] = {}
         self.latest_classified: Dict[str, Any] = {}
         self.telemetry_history: List[Dict[str, Any]] = []
         self.max_history = 60
+        self.active_symptoms: List[str] = []
 
         # Profile state
         self.maternal_profile = {
@@ -58,7 +69,7 @@ class SensorStreamManager:
         self.serial_conn = None
         self._serial_thread: Optional[threading.Thread] = None
 
-        # Start initial baseline
+        # Start initial baseline & simulator
         self._init_baseline()
         self.start_simulator()
 
@@ -66,8 +77,14 @@ class SensorStreamManager:
         raw = {
             "hr": 74, "spo2": 98, "ppg_signal": 512.0,
             "systolic_peak": 521.0, "diastolic_peak": 507.0, "pulse_area": 390.0,
-            "pitch": 45.0, "roll": 25.0, "vm_mean": 1.01, "vm_std": 0.08,
-            "sma": 1.25, "gm_mean": 12.0, "timestamp": datetime.now().isoformat()
+            "pulse_amp": 14.0, "pulse_mean": 512.0, "pulse_std": 5.0,
+            "ppi_mean": 810.0, "ppi_std": 22.0,
+            "Acc_X_mean": 0.12, "Acc_X_std": 0.04,
+            "Acc_Y_mean": 0.18, "Acc_Y_std": 0.05,
+            "Acc_Z_mean": 0.97, "Acc_Z_std": 0.03,
+            "VM_mean": 1.01, "VM_std": 0.04, "VM_max": 1.08,
+            "SMA": 1.15, "Pitch": 45.0, "Roll": 25.0,
+            "timestamp": datetime.now().isoformat()
         }
         self.ingest_raw(raw)
 
@@ -80,28 +97,43 @@ class SensorStreamManager:
 
     def update_profile(self, new_profile: Dict[str, Any]):
         self.maternal_profile.update(new_profile)
-        # Re-classify immediately
+        if self.latest_raw:
+            self.ingest_raw(self.latest_raw)
+
+    def update_symptoms(self, symptoms: List[str]):
+        """Sets the active list of mother-reported red-flag symptoms."""
+        self.active_symptoms = [s for s in symptoms if s in RED_FLAG_SYMPTOM_DEFINITIONS]
         if self.latest_raw:
             self.ingest_raw(self.latest_raw)
 
     def ingest_raw(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Receives raw sensor packets from ESP32 or simulator,
-        executes ML classification, stores in history, and notifies subscribers.
+        Receives raw or windowed sensor packets, executes ML classification,
+        evaluates deterministic clinical guidelines, and notifies subscribers.
         """
         raw_data["timestamp"] = datetime.now().strftime("%H:%M:%S")
         self.latest_raw = raw_data
 
-        # Classify through ML models
+        # 1. ML classification
         classified = self.ml_engine.classify(raw_data, self.maternal_profile)
         classified["timestamp"] = raw_data["timestamp"]
         classified["raw_inputs"] = raw_data
         classified["profile"] = self.maternal_profile
-        classified["data_source"] = "Physical ESP32" if self.serial_conn else ("Simulator (" + self.current_scenario + ")")
+        classified["data_source"] = "Physical ESP32 (USB)" if self.serial_conn else ("Simulator (" + self.current_scenario + ")")
+
+        # 2. Deterministic Clinical Guidelines Evaluation
+        guidelines = evaluate_guidelines(
+            vitals=classified["vitals"],
+            kinematics=classified["kinematics"],
+            profile=self.maternal_profile,
+            active_symptoms=self.active_symptoms
+        )
+        classified["guidelines"] = guidelines
+        classified["active_symptoms"] = self.active_symptoms
 
         self.latest_classified = classified
 
-        # Buffer history for charts
+        # 3. Buffer history for continuous charts
         chart_point = {
             "time": raw_data["timestamp"],
             "glucose": classified["vitals"]["glucose_mg_dl"],
@@ -115,7 +147,7 @@ class SensorStreamManager:
         if len(self.telemetry_history) > self.max_history:
             self.telemetry_history.pop(0)
 
-        # Notify active streaming listeners
+        # 4. Notify active listeners (SSE)
         for cb in list(self.subscribers):
             try:
                 cb(classified)
@@ -125,67 +157,82 @@ class SensorStreamManager:
         return classified
 
     # =========================================================================
-    # Simulator Controls
+    # Simulator Controls (Backup for Rehearsal & Testing)
     # =========================================================================
 
     def set_scenario(self, scenario: str):
-        valid = ["normal_resting", "postprandial_hyperglycemia", "supine_sleep_alert", "overexertion_high_hr", "gestational_hypertension"]
+        valid = [
+            "normal_resting",
+            "postprandial_hyperglycemia",
+            "supine_sleep_alert",
+            "overexertion_high_hr",
+            "gestational_hypertension",
+            "severe_hypertension"
+        ]
         if scenario in valid:
             self.current_scenario = scenario
-            print(f"[Simulator] Switched scenario to: {scenario}")
-            return True
-        return False
+            self._sim_step = 0
+            # Force immediate packet
+            packet = self._generate_simulated_packet(scenario, self._sim_step)
+            self.ingest_raw(packet)
 
     def start_simulator(self):
-        if not self.simulator_active:
-            self.simulator_active = True
-        if self._sim_thread is None or not self._sim_thread.is_alive():
-            self._sim_thread = threading.Thread(target=self._run_simulator_loop, daemon=True)
-            self._sim_thread.start()
+        if self._sim_thread and self._sim_thread.is_alive():
+            return
+        self.simulator_active = True
+        self._sim_thread = threading.Thread(target=self._run_simulator, daemon=True)
+        self._sim_thread.start()
 
     def stop_simulator(self):
         self.simulator_active = False
 
-    def _run_simulator_loop(self):
-        while True:
-            if self.simulator_active and (self.serial_conn is None):
-                self._sim_step += 1
-                t = self._sim_step * 0.5
-                raw = self._generate_simulated_packet(t, self.current_scenario)
-                self.ingest_raw(raw)
-            time.sleep(1.0)  # Stream at 1 Hz for stable web dashboards
+    def _run_simulator(self):
+        while self.simulator_active:
+            # If physical USB serial is active and streaming, suspend simulator ticks
+            if self.serial_conn and self.serial_conn.is_open:
+                time.sleep(1.0)
+                continue
 
-    def _generate_simulated_packet(self, t: float, scenario: str) -> Dict[str, Any]:
+            packet = self._generate_simulated_packet(self.current_scenario, self._sim_step)
+            self.ingest_raw(packet)
+            self._sim_step += 1
+            time.sleep(1.0)
+
+    def _generate_simulated_packet(self, scenario: str, step: int) -> Dict[str, Any]:
+        """
+        Generates physiologically faithful dynamic waveforms & windowed motion metrics.
+        """
+        t = step * 0.2
         rnd = lambda: random.uniform(-0.5, 0.5)
 
         if scenario == "postprandial_hyperglycemia":
-            # Mother after heavy meal: elevated glucose, moderate heart rate, sedentary
-            hr = 84 + 2 * math.sin(t / 4) + rnd()
-            ppg = 525.0 + 3 * math.sin(t / 2) + rnd()
+            # Elevated glucose post-meal (~148 mg/dL)
+            hr = 82 + 2 * math.sin(t / 4) + rnd()
+            ppg = 528.0 + 3 * math.sin(t / 2) + rnd()
             sys_peak = ppg + 14.0
             dia_peak = ppg - 6.0
             pulse_area = 430.0 + rnd() * 5
             pitch = 14.0 + rnd()
             roll = 18.0 + rnd()
-            vm_mean = 1.02 + rnd() * 0.05
-            vm_std = 0.12
-            sma = 1.30
+            vm_mean = 1.02 + rnd() * 0.03
+            vm_std = 0.06
+            sma = 1.25
 
         elif scenario == "supine_sleep_alert":
-            # Mother lying flat on back (pitch and roll < 20 deg), vena cava compression risk!
+            # Mother lying flat on back (pitch and roll < 15 deg) in bed -> Vena cava compression!
             hr = 68 + 2 * math.sin(t / 6) + rnd()
             ppg = 510.0 + rnd()
             sys_peak = ppg + 9.0
             dia_peak = ppg - 4.0
             pulse_area = 380.0
-            pitch = 8.0 + rnd() * 0.5    # Flat back!
-            roll = 10.0 + rnd() * 0.5   # Flat back!
-            vm_mean = 0.98 + rnd() * 0.02
-            vm_std = 0.02                # Deep sleep minimal movement
+            pitch = 6.0 + rnd() * 0.3    # Flat back!
+            roll = 8.0 + rnd() * 0.3    # Flat back!
+            vm_mean = 0.99 + rnd() * 0.01
+            vm_std = 0.02                # Deep resting minimal movement
             sma = 0.95
 
         elif scenario == "overexertion_high_hr":
-            # Mother walking briskly / jerky movement triggering high heart rate and overexertion
+            # Brisk walking / jerky movement
             hr = 138 + 4 * math.sin(t / 3) + rnd() * 2
             ppg = 535.0 + rnd() * 4
             sys_peak = ppg + 18.0
@@ -194,52 +241,80 @@ class SensorStreamManager:
             pitch = 18.0 + rnd() * 3
             roll = 22.0 + rnd() * 3
             vm_mean = 2.45 + rnd() * 0.4
-            vm_std = 1.15                # Strenuous movement!
-            sma = 3.10                   # Impact forces!
+            vm_std = 1.15                # Strenuous movement
+            sma = 3.10
 
         elif scenario == "gestational_hypertension":
-            # Hypertensive surge: tachycardia and elevated vascular resistance
-            hr = 104 + 3 * math.sin(t / 4) + rnd()
-            ppg = 522.0 + rnd() * 2
-            sys_peak = ppg + 22.0        # High pulse amplitude
+            # SBP 148 / DBP 94 spike (ACOG Stage 1)
+            hr = 98 + 3 * math.sin(t / 4) + rnd()
+            ppg = 524.0 + rnd() * 2
+            sys_peak = ppg + 22.0
             dia_peak = ppg - 11.0
-            pulse_area = 440.0
-            pitch = 12.0 + rnd()
+            pulse_area = 450.0
+            pitch = 14.0 + rnd()
             roll = 16.0 + rnd()
-            vm_mean = 1.04 + rnd() * 0.04
-            vm_std = 0.18
-            sma = 1.40
+            vm_mean = 1.03 + rnd() * 0.04
+            vm_std = 0.09
+            sma = 1.30
 
-        else: # "normal_resting"
-            # Healthy, calm, left-lateral sleep posture or seated rest
+        elif scenario == "severe_hypertension":
+            # SBP 164 / DBP 112 spike (ACOG Severe Urgent Care)
+            hr = 108 + 3 * math.sin(t / 4) + rnd()
+            ppg = 532.0 + rnd() * 2
+            sys_peak = ppg + 28.0
+            dia_peak = ppg - 14.0
+            pulse_area = 480.0
+            pitch = 12.0 + rnd()
+            roll = 14.0 + rnd()
+            vm_mean = 1.04 + rnd() * 0.03
+            vm_std = 0.08
+            sma = 1.35
+
+        else:  # "normal_resting"
+            # Healthy, left-lateral safe posture (Pitch 45, Roll 25)
             hr = 74 + 2 * math.sin(t / 5) + rnd()
             ppg = 512.0 + rnd()
             sys_peak = ppg + 10.0
             dia_peak = ppg - 4.5
             pulse_area = 390.0
-            pitch = 48.0 + rnd()         # Safe lateral tilt
-            roll = 26.0 + rnd()          # Safe lateral tilt
+            pitch = 46.0 + rnd()
+            roll = 24.0 + rnd()
             vm_mean = 1.01 + rnd() * 0.02
             vm_std = 0.04
             sma = 1.10
 
+        pulse_amp = max(2.0, sys_peak - dia_peak)
+
         return {
             "hr": round(hr, 1),
-            "spo2": 98 if scenario != "overexertion_high_hr" else 97,
+            "spo2": 98 if scenario != "overexertion_high_hr" else 96,
             "ppg_signal": round(ppg, 1),
             "systolic_peak": round(sys_peak, 1),
             "diastolic_peak": round(dia_peak, 1),
+            "pulse_amp": round(pulse_amp, 1),
             "pulse_area": round(pulse_area, 1),
-            "pitch": round(pitch, 1),
-            "roll": round(roll, 1),
-            "vm_mean": round(vm_mean, 2),
-            "vm_std": round(vm_std, 2),
-            "sma": round(sma, 2),
+            "pulse_mean": round(ppg, 1),
+            "pulse_std": round(pulse_amp * 0.35, 2),
+            "pulse_auc": round(pulse_area, 1),
+            "ppi_mean": round(60000.0 / hr, 1),
+            "ppi_std": 22.0,
+            "Acc_X_mean": round(math.sin(math.radians(pitch)) * 0.3, 3),
+            "Acc_X_std": round(vm_std * 0.6, 3),
+            "Acc_Y_mean": round(math.sin(math.radians(roll)) * 0.3, 3),
+            "Acc_Y_std": round(vm_std * 0.7, 3),
+            "Acc_Z_mean": round(math.cos(math.radians(max(pitch, roll))), 3),
+            "Acc_Z_std": round(vm_std * 0.5, 3),
+            "VM_mean": round(vm_mean, 2),
+            "VM_std": round(vm_std, 2),
+            "VM_max": round(vm_mean + vm_std * 2.0, 2),
+            "SMA": round(sma, 2),
+            "Pitch": round(pitch, 1),
+            "Roll": round(roll, 1),
             "gm_mean": 15.0 if scenario == "normal_resting" else 45.0
         }
 
     # =========================================================================
-    # Physical Serial Port Integration
+    # Physical Serial Port Integration (100 Hz USB JSON Streamer)
     # =========================================================================
 
     def detect_serial_ports(self) -> List[str]:
@@ -256,7 +331,7 @@ class SensorStreamManager:
                 self.serial_conn.close()
             self.serial_conn = serial.Serial(port_name, baud, timeout=1.0)
             self.serial_port_name = port_name
-            self.stop_simulator()  # Stop simulator in favor of real hardware
+            self.stop_simulator()
             self._serial_thread = threading.Thread(target=self._run_serial_reader, daemon=True)
             self._serial_thread.start()
             print(f"[Serial Bridge] Connected to ESP32 on {port_name} @ {baud}")
@@ -268,11 +343,34 @@ class SensorStreamManager:
 
     def _run_serial_reader(self):
         import json
+        last_emit_time = time.time()
         while self.serial_conn and self.serial_conn.is_open:
             try:
                 line = self.serial_conn.readline().decode('utf-8', errors='ignore').strip()
                 if line.startswith('{') and line.endswith('}'):
                     data = json.loads(line)
-                    self.ingest_raw(data)
+                    # Check if incoming packet is high-speed 100 Hz raw sample:
+                    if "ir" in data and ("ax" in data or "ax_g" in data):
+                        ir = float(data.get("ir", 512))
+                        red = float(data.get("red", ir))
+                        t_ms = float(data.get("t", 0))
+                        ax = float(data.get("ax", data.get("ax_g", 0.0)))
+                        ay = float(data.get("ay", data.get("ay_g", 0.0)))
+                        az = float(data.get("az", data.get("az_g", 1.0)))
+
+                        self.ppg_processor.add_sample(ir, red, t_ms)
+                        self.motion_processor.add_sample(ax, ay, az)
+
+                        now = time.time()
+                        # Throttle feature extraction & SSE dispatch to 5 Hz (every 0.2s)
+                        if now - last_emit_time >= 0.2:
+                            last_emit_time = now
+                            ppg_feats = self.ppg_processor.extract_features()
+                            motion_feats = self.motion_processor.extract_features()
+                            merged = {**ppg_feats, **motion_feats, "ts": data.get("t", int(now * 1000))}
+                            self.ingest_raw(merged)
+                    else:
+                        # Direct pre-computed JSON
+                        self.ingest_raw(data)
             except Exception:
-                time.sleep(0.1)
+                time.sleep(0.01)

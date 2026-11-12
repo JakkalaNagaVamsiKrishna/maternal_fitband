@@ -14,7 +14,8 @@ echo "======================================================================"
 
 # 1. Start Web App Backend
 echo "[1/3] Starting Cloud Web App & AI Companion Engine..."
-.venv/bin/python run_web_app.py > /tmp/maternal_web_app.log 2>&1 &
+PY="$([ -x .venv/bin/python ] && echo .venv/bin/python || echo python3)"
+$PY run_web_app.py > /tmp/maternal_web_app.log 2>&1 &
 WEB_PID=$!
 
 # Trap Ctrl+C to cleanly stop both services
@@ -33,14 +34,16 @@ trap cleanup SIGINT SIGTERM EXIT
 sleep 2
 
 # 2. Check cloudflared binary
-CLOUDFLARED_BIN="/home/vamsi/.local/bin/cloudflared"
-if [ ! -f "$CLOUDFLARED_BIN" ]; then
-    CLOUDFLARED_BIN=$(which cloudflared || true)
-fi
-
-if [ -z "$CLOUDFLARED_BIN" ]; then
-    echo "Warning: cloudflared not found in PATH. You can view locally at http://localhost:8080"
+CLOUDFLARED_BIN=$(command -v cloudflared || echo "/home/vamsi/.local/bin/cloudflared")
+if [ ! -x "$CLOUDFLARED_BIN" ]; then
+    echo "Notice: cloudflared not installed or not in PATH."
+    echo "======================================================================"
+    echo "  ✅ LIVE LOCAL DEMONSTRATION READY!"
+    echo "  💻 LOCAL LAPTOP URL  : http://localhost:8080"
+    echo "======================================================================"
+    echo "  👉 Press Ctrl + C at any time to stop the demo."
     wait $WEB_PID
+    exit 0
 fi
 
 # 3. Start Cloudflare Tunnel for Instant HTTPS Domain

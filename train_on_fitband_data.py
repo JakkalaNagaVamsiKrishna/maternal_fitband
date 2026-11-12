@@ -7,7 +7,7 @@ Trains end-to-end models on all three sub-databases inside maternal_fitband/data
   2. PPGHRDatabase:      Motion-Robust Optical (IR/Red/Green) + 3-Axis Accelerometer Heart Rate Estimation
   3. PPGGlucoseDatabase: Non-Invasive Blood Glucose & 3-Tier Glycemic Risk (22 clinical subjects, 844k rows)
 
-Saves all trained models into maternal_fitband/hardware_implementation/models/
+Saves all trained models into models/
 """
 
 import os
@@ -25,8 +25,9 @@ from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor, R
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_absolute_error, r2_score, classification_report, accuracy_score
 
-BASE_DATA = "maternal_fitband/data"
-OUTPUT_MODELS = "maternal_fitband/hardware_implementation/models"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DATA = os.path.join(SCRIPT_DIR, "data") if os.path.isdir(os.path.join(SCRIPT_DIR, "data")) else "maternal_fitband/data"
+OUTPUT_MODELS = os.path.join(SCRIPT_DIR, "models")
 os.makedirs(OUTPUT_MODELS, exist_ok=True)
 
 # =====================================================================
@@ -261,11 +262,20 @@ def train_glucose_models():
     print("\n" + "=" * 75)
     print("  3. TRAINING NON-INVASIVE GLUCOSE REGRESSOR (PPGGlucoseDatabase)")
     print("=" * 75)
-    csv_path = "datasets/clean-dataset.csv"
-    if not os.path.exists(csv_path):
-        csv_path = "clean-dataset.csv"
-    if not os.path.exists(csv_path):
-        print(f"[-] clean-dataset.csv not found at {csv_path}. Skipping glucose re-training.")
+    csv_candidates = [
+        os.path.join(BASE_DATA, "PPGGlucoseDatabase", "clean-dataset.csv.gz"),
+        os.path.join(BASE_DATA, "PPGGlucoseDatabase", "clean-dataset.csv"),
+        "datasets/clean-dataset.csv",
+        "clean-dataset.csv"
+    ]
+    csv_path = None
+    for candidate in csv_candidates:
+        if os.path.exists(candidate):
+            csv_path = candidate
+            break
+
+    if not csv_path:
+        print(f"[-] clean-dataset.csv(.gz) not found in candidates. Skipping glucose re-training.")
         return
         
     df = pd.read_csv(csv_path)
