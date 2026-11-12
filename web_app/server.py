@@ -142,6 +142,8 @@ class TelemetryIngestHandler(BaseApiHandler):
 class StreamSSEHandler(BaseApiHandler):
     """
     Server-Sent Events (SSE) streaming endpoint for live telemetry updates.
+    Uses a thread-safe queue so that callbacks from the serial reader thread
+    are safely dispatched into the Tornado/asyncio event loop.
     """
     async def get(self):
         self.set_header('Content-Type', 'text/event-stream')
@@ -150,10 +152,12 @@ class StreamSSEHandler(BaseApiHandler):
         self.set_header('X-Accel-Buffering', 'no')
 
         queue = asyncio.Queue()
+        loop = asyncio.get_event_loop()
 
         def listener(data):
+            """Thread-safe callback: schedule put onto the asyncio event loop."""
             try:
-                queue.put_nowait(data)
+                loop.call_soon_threadsafe(queue.put_nowait, data)
             except Exception:
                 pass
 

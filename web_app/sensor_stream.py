@@ -13,6 +13,7 @@ import time
 import math
 import random
 import threading
+import traceback
 from typing import Dict, Any, List, Callable, Optional
 from datetime import datetime
 
@@ -325,52 +326,101 @@ class SensorStreamManager:
 
     def connect_serial(self, port_name: str, baud: int = 115200) -> bool:
         if not HAS_SERIAL:
+            print("[Serial Bridge] pyserial not installed — cannot connect.")
             return False
         try:
             if self.serial_conn and self.serial_conn.is_open:
                 self.serial_conn.close()
+                time.sleep(0.3)
             self.serial_conn = serial.Serial(port_name, baud, timeout=1.0)
             self.serial_port_name = port_name
+            # Flush any stale data in the serial buffer
+            self.serial_conn.reset_input_buffer()
+            self.serial_conn.reset_output_buffer()
+            # Stop the simulator so only real data flows
             self.stop_simulator()
+            # Reset signal processing buffers for fresh calibration
+            self.ppg_processor = PPGSignalProcessor(sample_rate_hz=100.0, window_sec=4.0)
+            self.motion_processor = MotionWindowProcessor(sample_rate_hz=50.0, window_sec=6.0)
             self._serial_thread = threading.Thread(target=self._run_serial_reader, daemon=True)
             self._serial_thread.start()
             print(f"[Serial Bridge] Connected to ESP32 on {port_name} @ {baud}")
             return True
         except Exception as e:
             print(f"[Serial Bridge] Failed connecting to {port_name}: {e}")
+            import traceback
+            traceback.print_exc()
             self.serial_conn = None
             return False
 
     def _run_serial_reader(self):
         import json
         last_emit_time = time.time()
+        print("[Serial Reader] Thread started, waiting for data...")
+        line_count = 0
+        error_count = 0
         while self.serial_conn and self.serial_conn.is_open:
             try:
-                line = self.serial_conn.readline().decode('utf-8', errors='ignore').strip()
-                if line.startswith('{') and line.endswith('}'):
+                raw_bytes = self.serial_conn.readline()
+                if not raw_bytes:
+                    continue
+                line = raw_bytes.decode('utf-8', errors='ignore').strip()
+                if not line:
+                    continue
+
+                # Skip comment/debug lines from firmware (e.g. "# [OK] ...")
+                if line.startswith('#'):
+                    print(f"[Serial Reader] Firmware: {line}")
+                    continue
+
+                if not (line.startswith('{') and line.endswith('}')):
+                    # Partial or corrupted line — skip silently
+                    continue
+
+                try:
                     data = json.loads(line)
-                    # Check if incoming packet is high-speed 100 Hz raw sample:
-                    if "ir" in data and ("ax" in data or "ax_g" in data):
-                        ir = float(data.get("ir", 512))
-                        red = float(data.get("red", ir))
-                        t_ms = float(data.get("t", 0))
-                        ax = float(data.get("ax", data.get("ax_g", 0.0)))
-                        ay = float(data.get("ay", data.get("ay_g", 0.0)))
-                        az = float(data.get("az", data.get("az_g", 1.0)))
+                except json.JSONDecodeError:
+                    error_count += 1
+                    if error_count <= 5:
+                        print(f"[Serial Reader] Malformed JSON (#{error_count}): {line[:80]}")
+                    continue
 
-                        self.ppg_processor.add_sample(ir, red, t_ms)
-                        self.motion_processor.add_sample(ax, ay, az)
+                line_count += 1
+                if line_count == 1:
+                    print(f"[Serial Reader] First valid packet received: {line[:120]}")
 
-                        now = time.time()
-                        # Throttle feature extraction & SSE dispatch to 5 Hz (every 0.2s)
-                        if now - last_emit_time >= 0.2:
-                            last_emit_time = now
-                            ppg_feats = self.ppg_processor.extract_features()
-                            motion_feats = self.motion_processor.extract_features()
-                            merged = {**ppg_feats, **motion_feats, "ts": data.get("t", int(now * 1000))}
-                            self.ingest_raw(merged)
-                    else:
-                        # Direct pre-computed JSON
-                        self.ingest_raw(data)
-            except Exception:
+                # Check if incoming packet is high-speed 100 Hz raw sample:
+                if "ir" in data and ("ax" in data or "ax_g" in data):
+                    ir = float(data.get("ir", 512))
+                    red = float(data.get("red", ir))
+                    t_ms = float(data.get("t", 0))
+                    ax = float(data.get("ax", data.get("ax_g", 0.0)))
+                    ay = float(data.get("ay", data.get("ay_g", 0.0)))
+                    az = float(data.get("az", data.get("az_g", 1.0)))
+
+                    self.ppg_processor.add_sample(ir, red, t_ms)
+                    self.motion_processor.add_sample(ax, ay, az)
+
+                    now = time.time()
+                    # Throttle feature extraction & SSE dispatch to ~2 Hz (every 0.5s)
+                    if now - last_emit_time >= 0.5:
+                        last_emit_time = now
+                        ppg_feats = self.ppg_processor.extract_features()
+                        motion_feats = self.motion_processor.extract_features()
+                        merged = {**ppg_feats, **motion_feats, "ts": data.get("t", int(now * 1000))}
+                        if line_count <= 10 or line_count % 200 == 0:
+                            print(f"[Serial Reader] Emitting merged features (sample #{line_count}): HR={ppg_feats.get('heart_rate')}, PPG={ppg_feats.get('ppg_signal')}")
+                        self.ingest_raw(merged)
+                else:
+                    # Direct pre-computed JSON
+                    self.ingest_raw(data)
+            except serial.SerialException as e:
+                print(f"[Serial Reader] Serial port error: {e}")
+                break
+            except Exception as e:
+                if error_count < 10:
+                    print(f"[Serial Reader] Unexpected error: {e}")
+                    traceback.print_exc()
+                error_count += 1
                 time.sleep(0.01)
+        print(f"[Serial Reader] Thread exiting. Processed {line_count} packets, {error_count} errors.")

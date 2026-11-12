@@ -145,8 +145,11 @@ class MaternalMLEngine:
                     'Cardiac_Index_Proxy': cardiac_index_proxy
                 }
                 df_gluc = pd.DataFrame([feat_dict])[gluc_cols]
-                df_gluc_scaled = pd.DataFrame(self.scalers['glucose'].transform(df_gluc), columns=gluc_cols)
-                est_glucose = float(self.models['glucose_reg'].predict(df_gluc_scaled)[0])
+                df_gluc_scaled = self.scalers['glucose'].transform(df_gluc)
+                # Ridge was trained without feature names — pass numpy array
+                est_glucose = float(self.models['glucose_reg'].predict(
+                    df_gluc_scaled if not isinstance(df_gluc_scaled, pd.DataFrame) else df_gluc_scaled.values
+                )[0])
             except Exception as e:
                 # Fallback formula
                 est_glucose = 115.4 + 0.048 * (ppg_signal - 511.0) + 0.021 * (hr - 77.0) + 0.085 * (bmi - 24.0)
@@ -198,6 +201,9 @@ class MaternalMLEngine:
                 }
                 df_bp = pd.DataFrame([bp_dict])
                 df_bp_scaled = self.scalers['bp'].transform(df_bp)
+                # BP models were trained without feature names — use numpy array
+                if isinstance(df_bp_scaled, pd.DataFrame):
+                    df_bp_scaled = df_bp_scaled.values
                 sbp = int(round(float(self.models['sbp_reg'].predict(df_bp_scaled)[0])))
                 dbp = int(round(float(self.models['dbp_reg'].predict(df_bp_scaled)[0])))
                 if self.models.get('htn_clf'):
